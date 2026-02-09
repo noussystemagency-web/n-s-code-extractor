@@ -12,8 +12,8 @@ const MODES = [
 export default function ModeSelector({ mode, setMode }) {
   return (
     <div>
-      <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+      <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
         Modo de extracción
       </h3>
       <div className="space-y-1.5">
@@ -24,18 +24,18 @@ export default function ModeSelector({ mode, setMode }) {
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200",
               mode === m.id
-                ? "bg-blue-600/20 border border-blue-500/30 text-white"
-                : "hover:bg-white/5 text-slate-400 hover:text-slate-200 border border-transparent"
+                ? "bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-400 shadow-sm"
+                : "hover:bg-slate-50 text-slate-600 hover:text-slate-800 border border-slate-200 bg-white"
             )}
           >
             <div className={cn(
               "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-              mode === m.id ? "bg-blue-600/30" : "bg-white/5"
+              mode === m.id ? "bg-blue-100" : "bg-slate-50"
             )}>
-              <m.icon className={cn("w-4 h-4", mode === m.id ? "text-blue-400" : "text-slate-500")} />
+              <m.icon className={cn("w-4 h-4", mode === m.id ? "text-blue-600" : "text-slate-400")} />
             </div>
             <div>
-              <div className="text-sm font-medium">{m.label}</div>
+              <div className={cn("text-sm font-medium", mode === m.id ? "text-blue-700" : "text-slate-700")}>{m.label}</div>
               <div className="text-[11px] text-slate-500">{m.desc}</div>
             </div>
           </button>

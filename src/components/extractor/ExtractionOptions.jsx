@@ -31,7 +31,7 @@ export default function ExtractionOptions({ options, setOptions, cleanup, setCle
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           Opciones de extracción
         </h3>
@@ -39,38 +39,38 @@ export default function ExtractionOptions({ options, setOptions, cleanup, setCle
           {EXTRACTION_OPTIONS.map(opt => (
             <label
               key={opt.id}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors group"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group"
             >
               <Checkbox
                 checked={options[opt.id] !== false}
                 onCheckedChange={() => toggleOption(opt.id)}
-                className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
               />
-              <opt.icon className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-colors" />
-              <span className="text-sm text-slate-300">{opt.label}</span>
+              <opt.icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+              <span className="text-sm text-slate-700">{opt.label}</span>
             </label>
           ))}
         </div>
       </div>
 
-      <div className="border-t border-white/5 pt-4">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+      <div className="border-t border-slate-200 pt-4">
+        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
           Limpieza
         </h3>
         <div className="space-y-2">
           {CLEANUP_OPTIONS.map(opt => (
             <label
               key={opt.id}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors group"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group"
             >
               <Checkbox
                 checked={cleanup[opt.id] || false}
                 onCheckedChange={() => toggleCleanup(opt.id)}
-                className="border-slate-600 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                className="border-slate-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
               />
-              <opt.icon className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-colors" />
-              <span className="text-sm text-slate-300">{opt.label}</span>
+              <opt.icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+              <span className="text-sm text-slate-700">{opt.label}</span>
             </label>
           ))}
         </div>
