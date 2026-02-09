@@ -54,7 +54,7 @@ export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="https://ejemplo.com"
-            className="pl-10 pr-24 h-11 bg-white/5 border-white/10 text-slate-800 placeholder:text-slate-400 rounded-xl focus-visible:ring-0 focus-visible:border-violet-500/50"
+            className="pl-10 pr-24 h-11 bg-white/5 border-white/10 text-white placeholder:text-slate-400 rounded-xl focus-visible:ring-0 focus-visible:border-violet-500/50"
             disabled={isLoading}
             autoComplete="off"
           />
