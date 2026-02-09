@@ -406,8 +406,8 @@ export default function Extractor() {
       </div>
 
       {/* Disclaimer */}
-      <footer className="border-t border-white/5 mt-12 py-4">
-        <p className="text-center text-[11px] text-slate-600 max-w-2xl mx-auto px-4">
+      <footer className="border-t border-slate-200 mt-12 py-4">
+        <p className="text-center text-[11px] text-slate-500 max-w-2xl mx-auto px-4">
           Esta herramienta es para uso educativo y análisis de páginas propias o públicas.
           Respeta copyright y términos de servicio. NØÜS SYSTEM no se responsabiliza del uso indebido.
         </p>
