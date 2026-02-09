@@ -12,35 +12,35 @@ const NAV_ITEMS = [
 
 export default function Layout({ children, currentPageName }) {
   return (
-    <div className="min-h-screen bg-[#ece8f5]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <style>{`
         :root {
-          --background: 250 35% 92%;
-          --foreground: 270 50% 15%;
-          --card: 250 30% 96%;
-          --card-foreground: 270 50% 15%;
-          --popover: 250 30% 96%;
-          --popover-foreground: 270 50% 15%;
-          --primary: 270 70% 55%;
+          --background: 0 0% 98%;
+          --foreground: 222 47% 11%;
+          --card: 0 0% 100%;
+          --card-foreground: 222 47% 11%;
+          --popover: 0 0% 100%;
+          --popover-foreground: 222 47% 11%;
+          --primary: 217 91% 60%;
           --primary-foreground: 0 0% 100%;
-          --secondary: 250 25% 88%;
-          --secondary-foreground: 270 50% 20%;
-          --muted: 250 25% 88%;
-          --muted-foreground: 260 20% 45%;
-          --accent: 250 25% 88%;
-          --accent-foreground: 270 50% 20%;
+          --secondary: 210 40% 96%;
+          --secondary-foreground: 222 47% 11%;
+          --muted: 210 40% 96%;
+          --muted-foreground: 215 16% 47%;
+          --accent: 210 40% 96%;
+          --accent-foreground: 222 47% 11%;
           --destructive: 0 84% 60%;
           --destructive-foreground: 0 0% 100%;
-          --border: 260 20% 75%;
-          --input: 260 20% 75%;
-          --ring: 270 70% 55%;
+          --border: 214 32% 91%;
+          --input: 214 32% 91%;
+          --ring: 217 91% 60%;
           --radius: 0.75rem;
         }
-        body { background: #ece8f5; color: #2b1f3d; }
+        body { background: linear-gradient(to bottom right, #f8fafc, #f1f5f9); color: #0f172a; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #c4b5d8; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a38ec1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       `}</style>
       {children}
     </div>

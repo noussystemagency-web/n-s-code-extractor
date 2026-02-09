@@ -47,15 +47,15 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import Extractor from './pages/Extractor';
 import ComponentLibrary from './pages/ComponentLibrary';
+import Extractor from './pages/Extractor';
 import ProjectHistory from './pages/ProjectHistory';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Extractor": Extractor,
     "ComponentLibrary": ComponentLibrary,
+    "Extractor": Extractor,
     "ProjectHistory": ProjectHistory,
 }
 
