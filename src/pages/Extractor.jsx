@@ -82,7 +82,9 @@ export default function Extractor() {
       
       const response = await base44.functions.invoke(functionName, {
         url,
-        options: { mode, ...options, cleanup },
+        options: options,
+        mode: mode,
+        cleanup: cleanup,
       });
 
       if (response.data?.success) {
