@@ -262,13 +262,25 @@ export default function Extractor() {
               <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
+                  checked={options.render_spa}
+                  onChange={(e) => setOptions({...options, render_spa: e.target.checked})}
+                  className="w-4 h-4 rounded border-slate-300 bg-white text-amber-600 focus:ring-amber-500"
+                />
+                <div>
+                  <div className="text-sm text-slate-700 font-medium">Renderizar JavaScript (SPAs)</div>
+                  <div className="text-[11px] text-slate-500">Ejecuta JS antes de extraer</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
                   checked={useAdvancedExtraction}
                   onChange={(e) => setUseAdvancedExtraction(e.target.checked)}
                   className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500"
                 />
                 <div>
                   <div className="text-sm text-slate-700 font-medium">Extracción Avanzada</div>
-                  <div className="text-[11px] text-slate-500">Navegador headless + SPAs</div>
+                  <div className="text-[11px] text-slate-500">Navegador headless + más opciones</div>
                 </div>
               </label>
               <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
