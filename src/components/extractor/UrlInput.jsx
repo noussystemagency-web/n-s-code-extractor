@@ -34,18 +34,15 @@ export default function UrlInput({ onSubmit, isLoading }) {
             <Globe className="w-4 h-4 text-slate-500" />
           </div>
           <Input
+            type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            onPaste={(e) => {
-              e.preventDefault();
-              const pastedText = e.clipboardData.getData('text');
-              setUrl(pastedText);
-            }}
             placeholder="https://ejemplo.com"
             className="pl-10 pr-24 h-11 bg-white/5 border-white/10 text-slate-800 placeholder:text-slate-400 rounded-xl focus-visible:ring-0 focus-visible:border-violet-500/50"
             disabled={isLoading}
+            autoComplete="off"
           />
           <Button
             type="submit"
