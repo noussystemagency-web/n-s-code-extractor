@@ -13,10 +13,10 @@ export default function RecentProjects({ projects, onSelect, onDelete }) {
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {projects.slice(0, 8).map((project) => (
-          <button
+          <div
             key={project.id}
             onClick={() => onSelect(project)}
-            className="group relative bg-[#161b22] rounded-xl border border-white/5 p-3 text-left hover:border-blue-500/30 transition-all hover:bg-[#1a1f2e]"
+            className="group relative bg-[#161b22] rounded-xl border border-white/5 p-3 cursor-pointer hover:border-blue-500/30 transition-all hover:bg-[#1a1f2e]"
           >
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(project.id); }}
