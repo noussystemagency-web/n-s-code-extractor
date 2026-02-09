@@ -1,7 +1,7 @@
 import React from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Code2, Paintbrush, FileCode, Image, Type, LayoutGrid, Trash2, Minimize2, Zap } from "lucide-react";
+import { Code2, Paintbrush, FileCode, Image, Type, LayoutGrid, Trash2, Minimize2, Zap, Zap as ZapIcon } from "lucide-react";
 
 const EXTRACTION_OPTIONS = [
   { id: 'html', label: 'HTML', icon: Code2, checked: true },
@@ -11,6 +11,7 @@ const EXTRACTION_OPTIONS = [
   { id: 'images', label: 'Imágenes', icon: Image, checked: true },
   { id: 'fonts', label: 'Fuentes', icon: Type, checked: true },
   { id: 'structure', label: 'Estructura', icon: LayoutGrid, checked: true },
+  { id: 'render_spa', label: 'Renderizar JavaScript (SPAs)', icon: ZapIcon, checked: false },
 ];
 
 const CLEANUP_OPTIONS = [
