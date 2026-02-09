@@ -35,7 +35,7 @@ export default function Extractor() {
   const [showLivePreview, setShowLivePreview] = useState(false);
   const [detectedComponents, setDetectedComponents] = useState([]);
   const [previewDevice, setPreviewDevice] = useState('desktop');
-  const [useAdvancedExtraction, setUseAdvancedExtraction] = useState(true);
+  const [useAdvancedExtraction, setUseAdvancedExtraction] = useState(false);
   const [useEnhancedComponentDetection, setUseEnhancedComponentDetection] = useState(true);
   const [currentUrl, setCurrentUrl] = useState('');
   const [options, setOptions] = useState({
