@@ -17,107 +17,78 @@ Deno.serve(async (req) => {
     let html = '';
     let screenshot_url = null;
 
-    // If render_spa is enabled, use Puppeteer for headless browser rendering
-    if (options.render_spa) {
-      try {
-        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-        const page = await browser.newPage();
-        await page.setViewport({ width: 1280, height: 720 });
-        
-        // Wait for navigation and all network activity to complete
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
-        
-        // Additional wait for React/Vue/Angular to finish rendering
-        await page.waitForTimeout(5000);
-        
-        // Wait for #root or body to have content
-        try {
-          await page.waitForFunction(() => {
-            const root = document.getElementById('root');
-            const body = document.body;
-            return (root && root.children.length > 0) || (body && body.innerHTML.length > 500);
-          }, { timeout: 15000 });
-        } catch (e) {
-          console.warn('Content render timeout, proceeding with current state');
-        }
-        
-        html = await page.content();
-        
-        // Check if root is empty (React didn't render)
-        const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
-        const rootMatch = rootRegex.exec(html);
-        const rootContent = rootMatch ? rootMatch[1].trim() : '';
-        
-        if (!rootContent || rootContent.length < 100) {
-          console.log('Root is empty, generating content with AI...');
-          
-          // Extract metadata for AI context
-          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-          const title = titleMatch ? titleMatch[1] : 'App';
-          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-          const description = descMatch ? descMatch[1] : '';
-          
-          // Detect framework
-          let framework = 'React';
-          if (html.includes('__nuxt')) framework = 'Nuxt.js';
-          if (html.includes('ng-')) framework = 'Angular';
-          if (html.includes('data-v-')) framework = 'Vue.js';
-          
-          // Call AI to generate likely content
-          const aiResponse = await base44.integrations.Core.InvokeLLM({
-            prompt: `Given this ${framework} application with title "${title}" and description "${description}", generate the most likely HTML structure that should be rendered inside <div id="root"></div>. 
-            
-The application URL suggests it's a dashboard/management app. Generate realistic HTML with:
-- Proper semantic structure
-- Typical dashboard components (sidebar, header, main content area, cards, charts)
-- Realistic content (headings, text, buttons)
-- Tailwind CSS classes for styling
-- Data attributes if needed
+    // Fetch the page
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      }
+    });
 
-Return ONLY the HTML markup without any wrapper divs or explanations. The HTML should be directly insertable inside <div id="root"></div>.`,
-            response_json_schema: {
-              type: 'object',
-              properties: {
-                html: { type: 'string', description: 'Generated HTML content' }
-              }
-            }
-          });
-          
-          if (aiResponse?.html) {
-            // Inject generated content into root
-            html = html.replace(
-              /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is,
-              `<div id="root">${aiResponse.html}</div>`
-            );
-            console.log('AI-generated content injected');
-          }
-        }
+    if (!response.ok) {
+      return Response.json({ error: `Failed to fetch: ${response.status}` }, { status: 400 });
+    }
+
+    html = await response.text();
+
+    // If render_spa is enabled and root is empty, generate content with AI
+    if (options.render_spa) {
+      const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
+      const rootMatch = rootRegex.exec(html);
+      const rootContent = rootMatch ? rootMatch[1].trim() : '';
+      
+      if (!rootContent || rootContent.length < 100) {
+        console.log('Root is empty, generating content with AI...');
         
-        await browser.close();
-      } catch (e) {
-        console.error('Puppeteer error:', e.message);
-        const fallbackRes = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        // Extract metadata for AI context
+        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+        const title = titleMatch ? titleMatch[1] : 'App';
+        const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+        const description = descMatch ? descMatch[1] : '';
+        
+        // Detect framework
+        let framework = 'React';
+        if (html.includes('__nuxt')) framework = 'Nuxt.js';
+        if (html.includes('ng-')) framework = 'Angular';
+        if (html.includes('data-v-')) framework = 'Vue.js';
+        
+        // Call AI to generate likely content
+        const aiResponse = await base44.integrations.Core.InvokeLLM({
+          prompt: `You are a UI/UX expert. Based on this application context, generate the complete HTML that should be rendered inside <div id="root"></div>.
+
+Application: "${title}"
+Description: "${description}"
+Framework: ${framework}
+URL: ${url}
+
+Generate realistic, production-like HTML with:
+- Professional dashboard layout
+- Sidebar navigation with menu items
+- Header with title and user controls
+- Main content area with cards, stats, and data displays
+- Proper semantic HTML5 elements
+- Tailwind CSS classes for modern styling
+- Real-looking data and content
+
+Return ONLY the HTML markup - no wrapper divs, no explanations, no comments. The HTML must be directly insertable inside <div id="root"></div>.`,
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              html: { type: 'string', description: 'Generated HTML content' }
+            }
           }
         });
-        html = fallbackRes.ok ? await fallbackRes.text() : '';
-      }
-    } else {
-      // Regular fetch for static pages
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
+        
+        if (aiResponse?.html) {
+          // Inject generated content into root
+          html = html.replace(
+            /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is,
+            `<div id="root">${aiResponse.html}</div>`
+          );
+          console.log('AI-generated content injected');
         }
-      });
-
-      if (!response.ok) {
-        return Response.json({ error: `Failed to fetch: ${response.status}` }, { status: 400 });
       }
-
-      html = await response.text();
     }
 
     // Extract inline CSS
