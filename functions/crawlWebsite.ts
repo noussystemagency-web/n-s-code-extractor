@@ -17,10 +17,31 @@ Deno.serve(async (req) => {
     const baseUrlObj = new URL(baseUrl);
     const domain = baseUrlObj.hostname;
     const discoveredPages = new Set();
-    const queue = [baseUrl];
     const extractedPages = [];
 
-    // Helper to fetch and extract links
+    // Helper to extract routes from JavaScript
+    const extractRoutesFromJS = (jsCode) => {
+      const routes = [];
+      const patterns = [
+        /path:\s*["']([^"']+)["']/g,
+        /route\(["']([^"']+)["']\)/g,
+        /<Route path=["']([^"']+)["']/g,
+        /href=["']\/([^"'\/][^"']*?)["']/g,
+        /"pathname":\s*["']([^"']+)["']/g,
+      ];
+      
+      for (const pattern of patterns) {
+        let match;
+        while ((match = pattern.exec(jsCode)) !== null) {
+          let route = match[1];
+          if (!route.startsWith('/')) route = '/' + route;
+          routes.push(route);
+        }
+      }
+      return routes;
+    };
+
+    // Helper to fetch and extract links from HTML
     const fetchAndExtractLinks = async (url) => {
       try {
         const response = await fetch(url, {
@@ -32,36 +53,79 @@ Deno.serve(async (req) => {
         if (!response.ok) return [];
 
         const html = await response.text();
+        const links = new Set();
         
-        // Extract all links
+        // Extract links from HTML href attributes
         const linkRegex = /href=["']([^"']+)["']/gi;
-        const links = [];
         let match;
         while ((match = linkRegex.exec(html)) !== null) {
           let href = match[1];
-          
-          // Skip anchors and special links
           if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) continue;
           
-          // Convert relative to absolute
           if (href.startsWith('/')) {
             href = baseUrlObj.origin + href;
           } else if (!href.startsWith('http')) {
             href = new URL(href, url).href;
           }
           
-          // Only include internal links
           const linkObj = new URL(href);
           if (linkObj.hostname === domain) {
-            // Remove hash and query params for cleaner URLs
-            const cleanUrl = linkObj.origin + linkObj.pathname;
-            links.push(cleanUrl);
+            links.add(linkObj.origin + linkObj.pathname);
           }
         }
         
-        return [...new Set(links)];
+        // Extract script tags and fetch them for route analysis
+        const scriptRegex = /<script[^>]*src=["']([^"']+)["']/gi;
+        while ((match = scriptRegex.exec(html)) !== null) {
+          let scriptUrl = match[1];
+          if (scriptUrl.startsWith('/')) {
+            scriptUrl = baseUrlObj.origin + scriptUrl;
+          } else if (!scriptUrl.startsWith('http')) {
+            scriptUrl = new URL(scriptUrl, url).href;
+          }
+          
+          try {
+            const scriptRes = await fetch(scriptUrl);
+            if (scriptRes.ok) {
+              const scriptCode = await scriptRes.text();
+              const routes = extractRoutesFromJS(scriptCode);
+              for (const route of routes) {
+                const routeUrl = baseUrlObj.origin + route;
+                links.add(routeUrl);
+              }
+            }
+          } catch (e) {
+            // Skip if script fetch fails
+          }
+        }
+        
+        return Array.from(links);
       } catch (e) {
         console.error(`Error fetching ${url}:`, e.message);
+        return [];
+      }
+    };
+
+    // Helper to fetch sitemap
+    const fetchSitemap = async () => {
+      try {
+        const sitemapUrl = baseUrlObj.origin + '/sitemap.xml';
+        const response = await fetch(sitemapUrl);
+        if (!response.ok) return [];
+        
+        const xml = await response.text();
+        const urlRegex = /<loc>([^<]+)<\/loc>/g;
+        const urls = [];
+        let match;
+        while ((match = urlRegex.exec(xml)) !== null) {
+          const url = match[1];
+          const urlObj = new URL(url);
+          if (urlObj.hostname === domain) {
+            urls.push(url);
+          }
+        }
+        return urls;
+      } catch (e) {
         return [];
       }
     };
