@@ -11,6 +11,7 @@ const EXTRACTION_OPTIONS = [
   { id: 'images', label: 'Imágenes', icon: Image, checked: true },
   { id: 'fonts', label: 'Fuentes', icon: Type, checked: true },
   { id: 'structure', label: 'Estructura', icon: LayoutGrid, checked: true },
+  { id: 'render_spa', label: 'Renderizar JavaScript (SPAs)', icon: ZapIcon, checked: false },
 ];
 
 const CLEANUP_OPTIONS = [
