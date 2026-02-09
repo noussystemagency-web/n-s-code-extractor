@@ -252,7 +252,7 @@ export default function Extractor() {
           <div className="space-y-5 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
             <ModeSelector mode={mode} setMode={setMode} />
             
-            <div className="space-y-2">
+            <div className="space-y-2 bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
               <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
