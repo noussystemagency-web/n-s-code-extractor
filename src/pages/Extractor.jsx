@@ -41,6 +41,7 @@ export default function Extractor() {
   const [options, setOptions] = useState({
     html: true, css_inline: true, css_external: true,
     javascript: true, images: true, fonts: true, structure: true,
+    render_spa: false,
   });
   const [optimizationOptions, setOptimizationOptions] = useState({
     removeComments: false, removeUnusedCSS: false, minifyCSS: false,
