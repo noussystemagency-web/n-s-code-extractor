@@ -61,27 +61,34 @@ export default function Extractor() {
   });
 
   const handleExtract = async (url) => {
+    if (!url) {
+      toast.error('Ingresa una URL válida');
+      return;
+    }
+
+    if (isExtracting) {
+      toast.info('Ya se está extrayendo... espera a que termine');
+      return;
+    }
+
     setCurrentUrl(url);
     setIsExtracting(true);
     setExtractedData(null);
     setScreenshotUrl(null);
+    toast.info('Extrayendo contenido...');
 
     try {
       const functionName = useAdvancedExtraction ? 'extractWebPageAdvanced' : 'extractWebPage';
-      console.log('🔍 Iniciando extracción:', { url, functionName, options });
       
       const response = await base44.functions.invoke(functionName, {
         url,
         options: { mode, ...options, cleanup },
       });
 
-      console.log('📦 Respuesta recibida:', response);
-
       if (response.data?.success) {
-        console.log('✅ Extracción exitosa');
         setExtractedData(response.data.data);
         setScreenshotUrl(response.data.data?.screenshot_url);
-        toast.success('Extracción completada con ' + (useAdvancedExtraction ? 'navegador headless' : 'scraping básico'));
+        toast.success('✅ Extracción completada');
 
         // Save project
         const projName = response.data.data?.metadata?.title || new URL(url).hostname;
@@ -104,11 +111,9 @@ export default function Extractor() {
         });
         queryClient.invalidateQueries({ queryKey: ['projects'] });
       } else {
-        console.error('❌ Error en respuesta:', response.data);
         toast.error(response.data?.error || 'Error en la extracción');
       }
     } catch (err) {
-      console.error('❌ Error completo:', err);
       toast.error('Error: ' + (err.message || 'No se pudo extraer'));
     } finally {
       setIsExtracting(false);
