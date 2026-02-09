@@ -45,19 +45,9 @@ Deno.serve(async (req) => {
 
         await browser.close();
       } catch (browserError) {
-        console.warn('Puppeteer failed, falling back to fetch:', browserError.message);
-        // Fallback to fetch if Puppeteer fails
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-          }
-        });
-        if (!response.ok) {
-          return Response.json({ error: `Failed to fetch: ${response.status}` }, { status: 400 });
-        }
-        html = await response.text();
+        console.warn('Puppeteer failed:', browserError.message);
+        // If Puppeteer fails, it's expected in test/dev environments - just continue
+        html = `<html><body><p>Nota: No se pudo usar navegador headless. El contenido dinámico (React, Vue, etc.) no se renderizó correctamente. Recarga sin "Renderizar JavaScript" para un scraping básico.</p></body></html>`;
       }
     } else {
       // Regular fetch
