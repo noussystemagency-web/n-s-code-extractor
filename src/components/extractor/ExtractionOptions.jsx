@@ -37,21 +37,28 @@ export default function ExtractionOptions({ options, setOptions, cleanup, setCle
           Opciones de extracción
         </h3>
         <div className="space-y-2">
-          {EXTRACTION_OPTIONS.map(opt => (
-            <label
-              key={opt.id}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group"
-            >
-              <Checkbox
-                checked={options[opt.id] !== false}
-                onCheckedChange={() => toggleOption(opt.id)}
-                className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-              />
-              <opt.icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
-              <span className="text-sm text-slate-700">{opt.label}</span>
-            </label>
-          ))}
-        </div>
+           {EXTRACTION_OPTIONS.map(opt => (
+             <label
+               key={opt.id}
+               className="flex items-start gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group"
+             >
+               <div className="mt-0.5">
+                 <Checkbox
+                   checked={options[opt.id] !== false}
+                   onCheckedChange={() => toggleOption(opt.id)}
+                   className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                 />
+               </div>
+               <div className="flex-1">
+                 <opt.icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors inline-block mr-1.5" />
+                 <span className="text-sm text-slate-700">{opt.label}</span>
+                 {opt.id === 'render_spa' && (
+                   <p className="text-[11px] text-slate-500 mt-0.5">Ejecuta JavaScript antes de extraer. Necesario para React, Vue, Angular, etc.</p>
+                 )}
+               </div>
+             </label>
+           ))}
+         </div>
       </div>
 
       <div className="border-t border-slate-200 pt-4">
