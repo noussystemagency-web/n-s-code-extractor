@@ -36,6 +36,7 @@ export default function Extractor() {
   const [detectedComponents, setDetectedComponents] = useState([]);
   const [previewDevice, setPreviewDevice] = useState('desktop');
   const [useAdvancedExtraction, setUseAdvancedExtraction] = useState(true);
+  const [useEnhancedComponentDetection, setUseEnhancedComponentDetection] = useState(true);
   const [currentUrl, setCurrentUrl] = useState('');
   const [options, setOptions] = useState({
     html: true, css_inline: true, css_external: true,
@@ -149,6 +150,8 @@ export default function Extractor() {
       const response = await base44.functions.invoke('detectComponents', {
         html: extractedData.html,
         css: extractedData.css?.inline,
+        enhanced: useEnhancedComponentDetection,
+        structure: extractedData.structure,
       });
       if (response.data?.success) {
         setDetectedComponents(response.data.data.components);
@@ -242,7 +245,7 @@ export default function Extractor() {
           <div className="space-y-5 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
             <ModeSelector mode={mode} setMode={setMode} />
             
-            <div>
+            <div className="space-y-2">
               <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
@@ -253,6 +256,18 @@ export default function Extractor() {
                 <div>
                   <div className="text-sm text-slate-300 font-medium">Extracción Avanzada</div>
                   <div className="text-[11px] text-slate-600">Navegador headless + SPAs</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={useEnhancedComponentDetection}
+                  onChange={(e) => setUseEnhancedComponentDetection(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-600 bg-transparent text-violet-600 focus:ring-violet-500"
+                />
+                <div>
+                  <div className="text-sm text-slate-300 font-medium">Detección Mejorada</div>
+                  <div className="text-[11px] text-slate-600">Análisis profundo de componentes</div>
                 </div>
               </label>
             </div>
