@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import puppeteer from 'npm:puppeteer@22.0.0';
 
 Deno.serve(async (req) => {
   try {
@@ -17,33 +18,17 @@ Deno.serve(async (req) => {
     let html = '';
     let screenshot_url = null;
 
-    // If render_spa is enabled, use jsfiddle/headless rendering service
+    // If render_spa is enabled, use Puppeteer for headless browser rendering
     if (options.render_spa) {
       try {
-        // Use a headless rendering service (browserless) to render SPAs
-        const response = await fetch('https://chrome.browserless.io/content', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url,
-            gotoOptions: { waitUntil: 'networkidle2', timeout: 30000 },
-            delayMs: 5000,
-          })
-        });
-
-        if (response.ok) {
-          html = await response.text();
-        } else {
-          // Fallback to regular fetch if service fails
-          const fallbackRes = await fetch(url, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            }
-          });
-          html = fallbackRes.ok ? await fallbackRes.text() : '';
-        }
+        const browser = await puppeteer.launch({ headless: true });
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+        await page.waitForTimeout(3000);
+        html = await page.content();
+        await browser.close();
       } catch (e) {
-        console.warn('Headless rendering failed, falling back to fetch');
+        console.warn('Puppeteer rendering failed, falling back to fetch');
         const fallbackRes = await fetch(url, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -52,7 +37,7 @@ Deno.serve(async (req) => {
         html = fallbackRes.ok ? await fallbackRes.text() : '';
       }
     } else {
-      // Regular fetch
+      // Regular fetch for static pages
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
