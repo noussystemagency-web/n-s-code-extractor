@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import puppeteer from 'npm:puppeteer@23.11.1';
 
 Deno.serve(async (req) => {
   try {
@@ -18,36 +17,39 @@ Deno.serve(async (req) => {
     let html = '';
     let screenshot_url = null;
 
-    // If render_spa is enabled, use Puppeteer
+    // If render_spa is enabled, use jsfiddle/headless rendering service
     if (options.render_spa) {
       try {
-        const browser = await puppeteer.launch({
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        // Use a headless rendering service (browserless) to render SPAs
+        const response = await fetch('https://chrome.browserless.io/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url,
+            gotoOptions: { waitUntil: 'networkidle2', timeout: 30000 },
+            delayMs: 5000,
+          })
         });
 
-        const page = await browser.newPage();
-        await page.setViewport({ width: 1920, height: 1080 });
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-        await page.waitForTimeout(5000); // Wait for JS execution
-
-        html = await page.content();
-
-        // Take screenshot if available
-        try {
-          const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false, type: 'jpeg', quality: 80 });
-          const screenshotBlob = new Blob([Uint8Array.from(atob(screenshot), c => c.charCodeAt(0))], { type: 'image/jpeg' });
-          const uploadRes = await base44.integrations.Core.UploadFile({ file: screenshotBlob });
-          screenshot_url = uploadRes.file_url;
-        } catch (e) {}
-
-        await browser.close();
-      } catch (browserError) {
-        console.warn('Puppeteer failed:', browserError.message);
-        // If Puppeteer fails, it's expected in test/dev environments - just continue
-        html = `<html><body><p>Nota: No se pudo usar navegador headless. El contenido dinámico (React, Vue, etc.) no se renderizó correctamente. Recarga sin "Renderizar JavaScript" para un scraping básico.</p></body></html>`;
+        if (response.ok) {
+          html = await response.text();
+        } else {
+          // Fallback to regular fetch if service fails
+          const fallbackRes = await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            }
+          });
+          html = fallbackRes.ok ? await fallbackRes.text() : '';
+        }
+      } catch (e) {
+        console.warn('Headless rendering failed, falling back to fetch');
+        const fallbackRes = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          }
+        });
+        html = fallbackRes.ok ? await fallbackRes.text() : '';
       }
     } else {
       // Regular fetch
