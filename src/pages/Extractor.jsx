@@ -163,6 +163,7 @@ export default function Extractor() {
     if (extractedData) {
       handleDetectComponents();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extractedData]);
 
   const handleGeneratePrompt = async () => {
