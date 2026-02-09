@@ -38,7 +38,7 @@ export default function RecentProjects({ projects, onSelect, onDelete }) {
                 {moment(project.created_date).fromNow()}
               </span>
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>
