@@ -212,20 +212,27 @@ export default function Extractor() {
   };
 
   const handleSelectProject = (project) => {
-    setCurrentUrl(project.url);
-    setExtractedData({
-      html: project.html_content,
-      css: { inline: project.css_content, external: [], links: [] },
-      js: { inline: project.js_content ? [project.js_content] : [], external_links: [] },
-      structure: project.structure_json ? JSON.parse(project.structure_json) : [],
-      assets: {
-        images: (project.assets || []).filter(a => a.type === 'image').map(a => a.url),
-        fonts: project.fonts || [],
-        colors: project.colors || [],
-      },
-      metadata: project.metadata || {},
-    });
-    setScreenshotUrl(project.screenshot_url);
+    try {
+      setCurrentUrl(project.url);
+      const jsInline = project.js_content ? (typeof project.js_content === 'string' ? [project.js_content] : project.js_content) : [];
+      const structureData = project.structure_json ? (typeof project.structure_json === 'string' ? JSON.parse(project.structure_json) : project.structure_json) : [];
+      
+      setExtractedData({
+        html: project.html_content || '',
+        css: { inline: project.css_content || '', external: [], links: [] },
+        js: { inline: jsInline, external_links: [] },
+        structure: structureData,
+        assets: {
+          images: (project.assets || []).filter(a => a.type === 'image').map(a => a.url),
+          fonts: project.fonts || [],
+          colors: project.colors || [],
+        },
+        metadata: project.metadata || {},
+      });
+      setScreenshotUrl(project.screenshot_url);
+    } catch (err) {
+      toast.error('Error cargando proyecto');
+    }
   };
 
   const handleDeleteProject = async (id) => {
