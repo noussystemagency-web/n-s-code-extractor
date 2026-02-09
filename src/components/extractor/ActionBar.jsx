@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Download, Rocket, FileText, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ActionBar({ data, onGeneratePrompt, isGenerating }) {
+export default function ActionBar({ data, onGeneratePrompt, isGenerating, onCloneToBase44 }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopyAll = async () => {
@@ -84,10 +84,10 @@ ${data.html || ''}
         disabled={!data}
         size="sm"
         className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs h-9"
-        onClick={() => toast.info('Próximamente: envío directo a Base44')}
+        onClick={onCloneToBase44}
       >
         <Rocket className="w-3.5 h-3.5 mr-1.5" />
-        Enviar a Base44
+        Clonar a Base44
       </Button>
     </div>
   );

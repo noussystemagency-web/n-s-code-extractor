@@ -15,6 +15,7 @@ import MetadataBar from '../components/extractor/MetadataBar';
 import PromptModal from '../components/extractor/PromptModal';
 import CodeEditor from '../components/extractor/CodeEditor';
 import AdvancedOptions from '../components/extractor/AdvancedOptions';
+import CloneToBase44Modal from '../components/extractor/CloneToBase44Modal';
 
 export default function Extractor() {
   const [mode, setMode] = useState('full_page');
@@ -26,6 +27,7 @@ export default function Extractor() {
   const [promptData, setPromptData] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showCloneModal, setShowCloneModal] = useState(false);
   const [useAdvancedExtraction, setUseAdvancedExtraction] = useState(true);
   const [currentUrl, setCurrentUrl] = useState('');
   const [options, setOptions] = useState({
@@ -281,6 +283,7 @@ export default function Extractor() {
               <ActionBar
                 data={extractedData}
                 onGeneratePrompt={handleGeneratePrompt}
+                onCloneToBase44={() => setShowCloneModal(true)}
                 isGenerating={isGenerating}
               />
               {extractedData && (
@@ -320,6 +323,12 @@ export default function Extractor() {
         open={showPrompt}
         onOpenChange={setShowPrompt}
         promptData={promptData}
+      />
+
+      <CloneToBase44Modal
+        open={showCloneModal}
+        onOpenChange={setShowCloneModal}
+        data={extractedData}
       />
 
       {showEditor && (
