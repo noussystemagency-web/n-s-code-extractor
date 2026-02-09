@@ -253,28 +253,28 @@ export default function Extractor() {
             <ModeSelector mode={mode} setMode={setMode} />
             
             <div className="space-y-2">
-              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
                   checked={useAdvancedExtraction}
                   onChange={(e) => setUseAdvancedExtraction(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-600 bg-transparent text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500"
                 />
                 <div>
-                  <div className="text-sm text-slate-300 font-medium">Extracción Avanzada</div>
-                  <div className="text-[11px] text-slate-600">Navegador headless + SPAs</div>
+                  <div className="text-sm text-slate-700 font-medium">Extracción Avanzada</div>
+                  <div className="text-[11px] text-slate-500">Navegador headless + SPAs</div>
                 </div>
               </label>
-              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
                   checked={useEnhancedComponentDetection}
                   onChange={(e) => setUseEnhancedComponentDetection(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-600 bg-transparent text-violet-600 focus:ring-violet-500"
+                  className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500"
                 />
                 <div>
-                  <div className="text-sm text-slate-300 font-medium">Detección Mejorada</div>
-                  <div className="text-[11px] text-slate-600">Análisis profundo de componentes</div>
+                  <div className="text-sm text-slate-700 font-medium">Detección Mejorada</div>
+                  <div className="text-[11px] text-slate-500">Análisis profundo de componentes</div>
                 </div>
               </label>
             </div>
@@ -317,7 +317,7 @@ export default function Extractor() {
                   onClick={handleOptimizeCode}
                   disabled={isOptimizing}
                   variant="outline"
-                  className="w-full h-10 bg-transparent border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+                  className="w-full h-10 bg-white border-indigo-300 text-indigo-600 hover:bg-indigo-50"
                 >
                   {isOptimizing ? (
                     <>
@@ -358,7 +358,7 @@ export default function Extractor() {
                     onClick={() => setShowEditor(true)}
                     variant="outline"
                     size="sm"
-                    className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white text-xs h-9"
+                    className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 text-xs h-9"
                   >
                     <Code2 className="w-3.5 h-3.5 mr-1.5" />
                     Editar Código
@@ -367,7 +367,7 @@ export default function Extractor() {
                     onClick={() => setShowLivePreview(!showLivePreview)}
                     variant="outline"
                     size="sm"
-                    className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white text-xs h-9"
+                    className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 text-xs h-9"
                   >
                     {showLivePreview ? 'Ver Código' : 'Vista Previa Viva'}
                   </Button>
