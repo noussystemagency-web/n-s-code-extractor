@@ -446,23 +446,41 @@ export default function Extractor() {
               setOptions={setOptimizationOptions}
             />
             <div className="space-y-2">
-              <Button
-                onClick={() => currentUrl && handleExtract(currentUrl)}
-                disabled={!currentUrl || isExtracting}
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
-              >
-                {isExtracting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Extrayendo...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 mr-2" />
-                    Extraer TODO
-                  </>
-                )}
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => currentUrl && handleExtract(currentUrl)}
+                  disabled={!currentUrl || isExtracting || isCrawling}
+                  className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
+                >
+                  {isExtracting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Extrayendo
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Extraer
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => currentUrl && handleCrawlWebsite(currentUrl)}
+                  disabled={!currentUrl || isCrawling || isExtracting}
+                  className="h-11 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition-all"
+                >
+                  {isCrawling ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Crawling
+                    </>
+                  ) : (
+                    <>
+                      🕷️
+                    </>
+                  )}
+                </Button>
+              </div>
               {extractedData && (
                 <Button
                   onClick={handleOptimizeCode}
