@@ -67,12 +67,17 @@ export default function Extractor() {
 
     try {
       const functionName = useAdvancedExtraction ? 'extractWebPageAdvanced' : 'extractWebPage';
+      console.log('🔍 Iniciando extracción:', { url, functionName, options });
+      
       const response = await base44.functions.invoke(functionName, {
         url,
         options: { mode, ...options, cleanup },
       });
 
+      console.log('📦 Respuesta recibida:', response);
+
       if (response.data?.success) {
+        console.log('✅ Extracción exitosa');
         setExtractedData(response.data.data);
         setScreenshotUrl(response.data.data?.screenshot_url);
         toast.success('Extracción completada con ' + (useAdvancedExtraction ? 'navegador headless' : 'scraping básico'));
@@ -98,9 +103,11 @@ export default function Extractor() {
         });
         queryClient.invalidateQueries({ queryKey: ['projects'] });
       } else {
+        console.error('❌ Error en respuesta:', response.data);
         toast.error(response.data?.error || 'Error en la extracción');
       }
     } catch (err) {
+      console.error('❌ Error completo:', err);
       toast.error('Error: ' + (err.message || 'No se pudo extraer'));
     } finally {
       setIsExtracting(false);
