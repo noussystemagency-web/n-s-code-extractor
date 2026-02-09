@@ -503,7 +503,23 @@ export default function Extractor() {
 
           {/* Right Panel - Preview & Code */}
           <div className="space-y-4">
-            {showLivePreview && extractedData ? (
+            {isCrawling || siteData ? (
+              <>
+                {isCrawling && (
+                  <SiteExtractionProgress
+                    pages={crawlProgress}
+                    isComplete={false}
+                  />
+                )}
+                {siteData && (
+                  <FullSitePreview
+                    siteData={siteData}
+                    onSendToBase44={handleSendSiteToBase44}
+                    isSending={false}
+                  />
+                )}
+              </>
+            ) : showLivePreview && extractedData ? (
               <LivePreview
                 html={extractedData.html}
                 css={extractedData.css?.inline}
