@@ -59,8 +59,8 @@ export default function ComponentLibrary() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
+    <div className="min-h-screen">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to={createPageUrl('Extractor')} className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
