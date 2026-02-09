@@ -230,12 +230,12 @@ export default function Extractor() {
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
               <Crosshair className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-tight">
-                NØÜS <span className="text-amber-400">Code Extractor</span>
+              <h1 className="text-sm font-bold tracking-tight text-slate-900">
+                NØÜS <span className="text-blue-600">Code Extractor</span>
               </h1>
               <p className="text-[10px] text-slate-500 -mt-0.5">Web Cloner & Analyzer</p>
             </div>
