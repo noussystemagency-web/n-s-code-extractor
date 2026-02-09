@@ -225,9 +225,9 @@ export default function Extractor() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <header className="border-b border-white/5 bg-[#0f1419]/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
