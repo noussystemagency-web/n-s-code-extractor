@@ -20,6 +20,8 @@ import LivePreview from '../components/extractor/LivePreview';
 import ComponentDetector from '../components/extractor/ComponentDetector';
 import AnalysisPanel from '../components/extractor/AnalysisPanel';
 import ReactConverter from '../components/extractor/ReactConverter';
+import SiteExtractionProgress from '../components/extractor/SiteExtractionProgress';
+import FullSitePreview from '../components/extractor/FullSitePreview';
 
 export default function Extractor() {
   const [mode, setMode] = useState('full_page');
