@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Crosshair, Loader2, Settings, Zap } from 'lucide-react';
+import { Crosshair, Loader2, Settings, Zap, Code2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -13,6 +13,8 @@ import ActionBar from '../components/extractor/ActionBar';
 import RecentProjects from '../components/extractor/RecentProjects';
 import MetadataBar from '../components/extractor/MetadataBar';
 import PromptModal from '../components/extractor/PromptModal';
+import CodeEditor from '../components/extractor/CodeEditor';
+import AdvancedOptions from '../components/extractor/AdvancedOptions';
 
 export default function Extractor() {
   const [mode, setMode] = useState('full_page');
@@ -20,12 +22,21 @@ export default function Extractor() {
   const [screenshotUrl, setScreenshotUrl] = useState(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const [promptData, setPromptData] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  const [useAdvancedExtraction, setUseAdvancedExtraction] = useState(true);
   const [currentUrl, setCurrentUrl] = useState('');
   const [options, setOptions] = useState({
     html: true, css_inline: true, css_external: true,
     javascript: true, images: true, fonts: true, structure: true,
+  });
+  const [optimizationOptions, setOptimizationOptions] = useState({
+    removeComments: false, removeUnusedCSS: false, minifyCSS: false,
+    minifyHTML: false, minifyJS: false, removeScripts: false,
+    removeEmptyElements: false, removeInlineStyles: false,
+    combineMediaQueries: false, removeConsole: false, removeDebugger: false,
   });
   const [cleanup, setCleanup] = useState({
     remove_scripts: false, minify: false, optimize: false,
@@ -45,14 +56,16 @@ export default function Extractor() {
     setScreenshotUrl(null);
 
     try {
-      const response = await base44.functions.invoke('extractWebPage', {
+      const functionName = useAdvancedExtraction ? 'extractWebPageAdvanced' : 'extractWebPage';
+      const response = await base44.functions.invoke(functionName, {
         url,
         options: { mode, ...options, cleanup },
       });
 
       if (response.data?.success) {
         setExtractedData(response.data.data);
-        toast.success('Extracción completada');
+        setScreenshotUrl(response.data.data?.screenshot_url);
+        toast.success('Extracción completada con ' + (useAdvancedExtraction ? 'navegador headless' : 'scraping básico'));
 
         // Save project
         const projName = response.data.data?.metadata?.title || new URL(url).hostname;
@@ -70,6 +83,7 @@ export default function Extractor() {
             type: 'image', url: img, name: img.split('/').pop()
           })),
           metadata: response.data.data?.metadata || {},
+          screenshot_url: response.data.data?.screenshot_url,
           status: 'completed',
         });
         queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -81,6 +95,43 @@ export default function Extractor() {
     } finally {
       setIsExtracting(false);
     }
+  };
+
+  const handleOptimizeCode = async () => {
+    if (!extractedData) return;
+    setIsOptimizing(true);
+    try {
+      const response = await base44.functions.invoke('optimizeCode', {
+        html: extractedData.html,
+        css: extractedData.css?.inline || '',
+        js: (extractedData.js?.inline || []).join('\n'),
+        options: optimizationOptions,
+      });
+
+      if (response.data?.success) {
+        setExtractedData({
+          ...extractedData,
+          html: response.data.data.html,
+          css: { ...extractedData.css, inline: response.data.data.css },
+          js: { ...extractedData.js, inline: [response.data.data.js] },
+        });
+        toast.success(`Código optimizado: ${response.data.data.stats.reduction} reducción`);
+      }
+    } catch (err) {
+      toast.error('Error optimizando: ' + err.message);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const handleSaveEdited = (edited) => {
+    setExtractedData({
+      ...extractedData,
+      html: edited.html,
+      css: { ...extractedData.css, inline: edited.css },
+      js: { ...extractedData.js, inline: [edited.js] },
+    });
+    setShowEditor(false);
   };
 
   const handleGeneratePrompt = async () => {
@@ -154,10 +205,26 @@ export default function Extractor() {
       </header>
 
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
           {/* Left Panel - Controls */}
-          <div className="space-y-5">
+          <div className="space-y-5 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
             <ModeSelector mode={mode} setMode={setMode} />
+            
+            <div>
+              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={useAdvancedExtraction}
+                  onChange={(e) => setUseAdvancedExtraction(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-600 bg-transparent text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <div className="text-sm text-slate-300 font-medium">Extracción Avanzada</div>
+                  <div className="text-[11px] text-slate-600">Navegador headless + SPAs</div>
+                </div>
+              </label>
+            </div>
+
             <UrlInput onSubmit={handleExtract} isLoading={isExtracting} />
             <ExtractionOptions
               options={options}
@@ -165,33 +232,69 @@ export default function Extractor() {
               cleanup={cleanup}
               setCleanup={setCleanup}
             />
-            <Button
-              onClick={() => currentUrl && handleExtract(currentUrl)}
-              disabled={!currentUrl || isExtracting}
-              className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
-            >
-              {isExtracting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Extrayendo...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 mr-2" />
-                  Extraer TODO
-                </>
+            <AdvancedOptions
+              options={optimizationOptions}
+              setOptions={setOptimizationOptions}
+            />
+            <div className="space-y-2">
+              <Button
+                onClick={() => currentUrl && handleExtract(currentUrl)}
+                disabled={!currentUrl || isExtracting}
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
+              >
+                {isExtracting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Extrayendo...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Extraer TODO
+                  </>
+                )}
+              </Button>
+              {extractedData && (
+                <Button
+                  onClick={handleOptimizeCode}
+                  disabled={isOptimizing}
+                  variant="outline"
+                  className="w-full h-10 bg-transparent border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+                >
+                  {isOptimizing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                      Optimizando...
+                    </>
+                  ) : (
+                    'Optimizar Código'
+                  )}
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
 
           {/* Right Panel - Preview & Code */}
           <div className="space-y-4">
             <PreviewPanel data={extractedData} screenshotUrl={screenshotUrl} />
-            <ActionBar
-              data={extractedData}
-              onGeneratePrompt={handleGeneratePrompt}
-              isGenerating={isGenerating}
-            />
+            <div className="flex flex-wrap gap-2">
+              <ActionBar
+                data={extractedData}
+                onGeneratePrompt={handleGeneratePrompt}
+                isGenerating={isGenerating}
+              />
+              {extractedData && (
+                <Button
+                  onClick={() => setShowEditor(true)}
+                  variant="outline"
+                  size="sm"
+                  className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white text-xs h-9"
+                >
+                  <Code2 className="w-3.5 h-3.5 mr-1.5" />
+                  Editar Código
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -218,6 +321,18 @@ export default function Extractor() {
         onOpenChange={setShowPrompt}
         promptData={promptData}
       />
+
+      {showEditor && (
+        <CodeEditor
+          initialData={{
+            html: extractedData?.html || '',
+            css: extractedData?.css?.inline || '',
+            js: (extractedData?.js?.inline || []).join('\n'),
+          }}
+          onSave={handleSaveEdited}
+          onCancel={() => setShowEditor(false)}
+        />
+      )}
     </div>
   );
 }
