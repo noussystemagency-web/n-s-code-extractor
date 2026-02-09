@@ -21,14 +21,31 @@ Deno.serve(async (req) => {
     // If render_spa is enabled, use Puppeteer for headless browser rendering
     if (options.render_spa) {
       try {
-        const browser = await puppeteer.launch({ headless: true });
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
         const page = await browser.newPage();
-        await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
-        await page.waitForTimeout(3000);
+        await page.setViewport({ width: 1280, height: 720 });
+        
+        // Wait for navigation and all network activity to complete
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
+        
+        // Additional wait for React/Vue/Angular to finish rendering
+        await page.waitForTimeout(5000);
+        
+        // Wait for #root or body to have content
+        try {
+          await page.waitForFunction(() => {
+            const root = document.getElementById('root');
+            const body = document.body;
+            return (root && root.children.length > 0) || (body && body.innerHTML.length > 500);
+          }, { timeout: 15000 });
+        } catch (e) {
+          console.warn('Content render timeout, proceeding with current state');
+        }
+        
         html = await page.content();
         await browser.close();
       } catch (e) {
-        console.warn('Puppeteer rendering failed, falling back to fetch');
+        console.error('Puppeteer error:', e.message);
         const fallbackRes = await fetch(url, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
