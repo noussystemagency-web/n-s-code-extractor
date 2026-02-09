@@ -37,12 +37,13 @@ export default function ExtractionOptions({ options, setOptions, cleanup, setCle
           Opciones de extracción
         </h3>
         <div className="space-y-2">
-           {EXTRACTION_OPTIONS.map(opt => (
+           {EXTRACTION_OPTIONS.map((opt, idx) => (
              <label
                key={opt.id}
                className="flex items-start gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group"
              >
-               <div className="mt-0.5">
+               <div className="mt-0.5 flex items-center gap-2">
+                 <span className="text-xs font-semibold text-slate-400 w-4">{idx + 1}</span>
                  <Checkbox
                    checked={options[opt.id] !== false}
                    onCheckedChange={() => toggleOption(opt.id)}
