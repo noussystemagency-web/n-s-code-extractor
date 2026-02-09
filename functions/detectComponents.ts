@@ -10,6 +10,80 @@ Deno.serve(async (req) => {
 
         const { html, css, enhanced = false, structure } = await req.json();
 
+    if (enhanced) {
+        // Use AI for enhanced component detection
+        const prompt = `Analyze this HTML and CSS code to detect reusable UI components.
+
+HTML:
+${html.substring(0, 10000)}
+
+CSS:
+${css?.substring(0, 5000) || 'No CSS'}
+
+${structure ? `DOM Structure:\n${JSON.stringify(structure).substring(0, 2000)}\n\nUse the DOM structure to better understand component hierarchy and relationships.` : ''}
+
+Identify distinct UI components (buttons, cards, forms, modals, navigation, headers, footers, etc).
+Perform deep analysis to detect nested components, variations, and reusable patterns.
+For each component found, provide:
+1. type: The component type (button, card, form, modal, navigation, header, footer, sidebar, table, or other)
+2. name: A descriptive name
+3. html: The isolated HTML for this component (keep it short)
+4. css: The relevant CSS for this component
+5. description: Brief description of the component
+6. variants: Array of detected variations if any
+
+Return ONLY a valid JSON object with this structure:
+{
+  "components": [
+    {
+      "type": "button",
+      "name": "Primary CTA Button",
+      "html": "<button>...</button>",
+      "css": ".btn { ... }",
+      "description": "Main call-to-action button with gradient",
+      "variants": ["primary", "secondary"]
+    }
+  ]
+}`;
+
+        const aiResponse = await base44.integrations.Core.InvokeLLM({
+            prompt,
+            response_json_schema: {
+                type: "object",
+                properties: {
+                    components: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            properties: {
+                                type: { type: "string" },
+                                name: { type: "string" },
+                                html: { type: "string" },
+                                css: { type: "string" },
+                                description: { type: "string" },
+                                variants: { type: "array", items: { type: "string" } }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return Response.json({
+            success: true,
+            data: {
+                components: aiResponse.components || [],
+                summary: {
+                    total: aiResponse.components?.length || 0,
+                    by_type: (aiResponse.components || []).reduce((acc, c) => {
+                        acc[c.type] = (acc[c.type] || 0) + 1;
+                        return acc;
+                    }, {}),
+                }
+            }
+        });
+    }
+
     const components = [];
 
     // Detect buttons
