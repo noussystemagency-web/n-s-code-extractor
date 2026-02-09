@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import puppeteer from 'npm:puppeteer@23.11.1';
 
 Deno.serve(async (req) => {
   try {
@@ -14,20 +15,66 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'URL is required' }, { status: 400 });
     }
 
-    // Fetch the page HTML
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
+    let html = '';
+    let screenshot_url = null;
+
+    // If render_spa is enabled, use Puppeteer
+    if (options.render_spa) {
+      try {
+        const browser = await puppeteer.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        });
+
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1920, height: 1080 });
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.waitForTimeout(5000); // Wait for JS execution
+
+        html = await page.content();
+
+        // Take screenshot if available
+        try {
+          const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false, type: 'jpeg', quality: 80 });
+          const screenshotBlob = new Blob([Uint8Array.from(atob(screenshot), c => c.charCodeAt(0))], { type: 'image/jpeg' });
+          const uploadRes = await base44.integrations.Core.UploadFile({ file: screenshotBlob });
+          screenshot_url = uploadRes.file_url;
+        } catch (e) {}
+
+        await browser.close();
+      } catch (browserError) {
+        console.warn('Puppeteer failed, falling back to fetch:', browserError.message);
+        // Fallback to fetch if Puppeteer fails
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+          }
+        });
+        if (!response.ok) {
+          return Response.json({ error: `Failed to fetch: ${response.status}` }, { status: 400 });
+        }
+        html = await response.text();
       }
-    });
+    } else {
+      // Regular fetch
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+        }
+      });
 
-    if (!response.ok) {
-      return Response.json({ error: `Failed to fetch: ${response.status}` }, { status: 400 });
+      if (!response.ok) {
+        return Response.json({ error: `Failed to fetch: ${response.status}` }, { status: 400 });
+      }
+
+      html = await response.text();
     }
-
-    const html = await response.text();
 
     // Extract inline CSS
     const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
