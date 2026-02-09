@@ -40,6 +40,9 @@ export default function Extractor() {
   const [useAdvancedExtraction, setUseAdvancedExtraction] = useState(false);
   const [useEnhancedComponentDetection, setUseEnhancedComponentDetection] = useState(true);
   const [currentUrl, setCurrentUrl] = useState('');
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [siteData, setSiteData] = useState(null);
+  const [crawlProgress, setCrawlProgress] = useState([]);
   const [options, setOptions] = useState({
     html: true, css_inline: true, css_external: true,
     javascript: true, images: true, fonts: true, structure: true,
