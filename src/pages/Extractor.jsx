@@ -16,6 +16,10 @@ import PromptModal from '../components/extractor/PromptModal';
 import CodeEditor from '../components/extractor/CodeEditor';
 import AdvancedOptions from '../components/extractor/AdvancedOptions';
 import CloneToBase44Modal from '../components/extractor/CloneToBase44Modal';
+import LivePreview from '../components/extractor/LivePreview';
+import ComponentDetector from '../components/extractor/ComponentDetector';
+import AnalysisPanel from '../components/extractor/AnalysisPanel';
+import ReactConverter from '../components/extractor/ReactConverter';
 
 export default function Extractor() {
   const [mode, setMode] = useState('full_page');
@@ -28,6 +32,9 @@ export default function Extractor() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [showCloneModal, setShowCloneModal] = useState(false);
+  const [showLivePreview, setShowLivePreview] = useState(false);
+  const [detectedComponents, setDetectedComponents] = useState([]);
+  const [previewDevice, setPreviewDevice] = useState('desktop');
   const [useAdvancedExtraction, setUseAdvancedExtraction] = useState(true);
   const [currentUrl, setCurrentUrl] = useState('');
   const [options, setOptions] = useState({
@@ -135,6 +142,28 @@ export default function Extractor() {
     });
     setShowEditor(false);
   };
+
+  const handleDetectComponents = async () => {
+    if (!extractedData) return;
+    try {
+      const response = await base44.functions.invoke('detectComponents', {
+        html: extractedData.html,
+        css: extractedData.css?.inline,
+      });
+      if (response.data?.success) {
+        setDetectedComponents(response.data.data.components);
+        toast.success(`${response.data.data.components.length} componentes detectados`);
+      }
+    } catch (err) {
+      toast.error('Error detectando componentes');
+    }
+  };
+
+  useEffect(() => {
+    if (extractedData) {
+      handleDetectComponents();
+    }
+  }, [extractedData]);
 
   const handleGeneratePrompt = async () => {
     if (!extractedData) return;
@@ -278,7 +307,17 @@ export default function Extractor() {
 
           {/* Right Panel - Preview & Code */}
           <div className="space-y-4">
-            <PreviewPanel data={extractedData} screenshotUrl={screenshotUrl} />
+            {showLivePreview && extractedData ? (
+              <LivePreview
+                html={extractedData.html}
+                css={extractedData.css?.inline}
+                js={(extractedData.js?.inline || []).join('\n')}
+                device={previewDevice}
+              />
+            ) : (
+              <PreviewPanel data={extractedData} screenshotUrl={screenshotUrl} />
+            )}
+            
             <div className="flex flex-wrap gap-2">
               <ActionBar
                 data={extractedData}
@@ -287,17 +326,45 @@ export default function Extractor() {
                 isGenerating={isGenerating}
               />
               {extractedData && (
-                <Button
-                  onClick={() => setShowEditor(true)}
-                  variant="outline"
-                  size="sm"
-                  className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white text-xs h-9"
-                >
-                  <Code2 className="w-3.5 h-3.5 mr-1.5" />
-                  Editar Código
-                </Button>
+                <>
+                  <Button
+                    onClick={() => setShowEditor(true)}
+                    variant="outline"
+                    size="sm"
+                    className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white text-xs h-9"
+                  >
+                    <Code2 className="w-3.5 h-3.5 mr-1.5" />
+                    Editar Código
+                  </Button>
+                  <Button
+                    onClick={() => setShowLivePreview(!showLivePreview)}
+                    variant="outline"
+                    size="sm"
+                    className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white text-xs h-9"
+                  >
+                    {showLivePreview ? 'Ver Código' : 'Vista Previa Viva'}
+                  </Button>
+                </>
               )}
             </div>
+
+            {/* Additional Panels */}
+            {extractedData && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <ComponentDetector 
+                  components={detectedComponents}
+                  onSaveComponent={() => queryClient.invalidateQueries({ queryKey: ['components'] })}
+                />
+                <ReactConverter 
+                  html={extractedData.html}
+                  css={extractedData.css?.inline}
+                />
+              </div>
+            )}
+
+            {extractedData && (
+              <AnalysisPanel extractedData={extractedData} />
+            )}
           </div>
         </div>
 
