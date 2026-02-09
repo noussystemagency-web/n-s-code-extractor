@@ -26,7 +26,7 @@ export default function CodeViewer({ code, language = "html", maxHeight = "400px
 
   if (!code) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-600 text-sm">
+      <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
         No hay código para mostrar
       </div>
     );
@@ -39,24 +39,24 @@ export default function CodeViewer({ code, language = "html", maxHeight = "400px
           size="icon"
           variant="ghost"
           onClick={handleCopy}
-          className="h-7 w-7 bg-slate-800/80 hover:bg-slate-700 backdrop-blur-sm"
+          className="h-7 w-7 bg-white/90 hover:bg-white backdrop-blur-sm border border-slate-200"
         >
-          {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-slate-300" />}
+          {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-slate-600" />}
         </Button>
         <Button
           size="icon"
           variant="ghost"
           onClick={handleDownload}
-          className="h-7 w-7 bg-slate-800/80 hover:bg-slate-700 backdrop-blur-sm"
+          className="h-7 w-7 bg-white/90 hover:bg-white backdrop-blur-sm border border-slate-200"
         >
-          <Download className="w-3.5 h-3.5 text-slate-300" />
+          <Download className="w-3.5 h-3.5 text-slate-600" />
         </Button>
       </div>
       <div
-        className="bg-[#0d1117] rounded-lg border border-white/5 overflow-auto font-mono text-[13px] leading-relaxed"
+        className="bg-slate-50 rounded-lg border border-slate-200 overflow-auto font-mono text-[13px] leading-relaxed"
         style={{ maxHeight }}
       >
-        <pre className="p-4 text-slate-300 whitespace-pre-wrap break-words">
+        <pre className="p-4 text-slate-800 whitespace-pre-wrap break-words">
           <code>{code}</code>
         </pre>
       </div>
