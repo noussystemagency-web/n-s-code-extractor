@@ -56,9 +56,9 @@ ${data.html || ''}
         disabled={!data}
         variant="outline"
         size="sm"
-        className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white text-xs h-9"
+        className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 text-xs h-9"
       >
-        {copied ? <Check className="w-3.5 h-3.5 mr-1.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
+        {copied ? <Check className="w-3.5 h-3.5 mr-1.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
         Copiar
       </Button>
       <Button
@@ -66,7 +66,7 @@ ${data.html || ''}
         disabled={!data}
         variant="outline"
         size="sm"
-        className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white text-xs h-9"
+        className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 text-xs h-9"
       >
         <Download className="w-3.5 h-3.5 mr-1.5" />
         Exportar
