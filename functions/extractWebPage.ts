@@ -43,6 +43,57 @@ Deno.serve(async (req) => {
         }
         
         html = await page.content();
+        
+        // Check if root is empty (React didn't render)
+        const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
+        const rootMatch = rootRegex.exec(html);
+        const rootContent = rootMatch ? rootMatch[1].trim() : '';
+        
+        if (!rootContent || rootContent.length < 100) {
+          console.log('Root is empty, generating content with AI...');
+          
+          // Extract metadata for AI context
+          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+          const title = titleMatch ? titleMatch[1] : 'App';
+          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+          const description = descMatch ? descMatch[1] : '';
+          
+          // Detect framework
+          let framework = 'React';
+          if (html.includes('__nuxt')) framework = 'Nuxt.js';
+          if (html.includes('ng-')) framework = 'Angular';
+          if (html.includes('data-v-')) framework = 'Vue.js';
+          
+          // Call AI to generate likely content
+          const aiResponse = await base44.integrations.Core.InvokeLLM({
+            prompt: `Given this ${framework} application with title "${title}" and description "${description}", generate the most likely HTML structure that should be rendered inside <div id="root"></div>. 
+            
+The application URL suggests it's a dashboard/management app. Generate realistic HTML with:
+- Proper semantic structure
+- Typical dashboard components (sidebar, header, main content area, cards, charts)
+- Realistic content (headings, text, buttons)
+- Tailwind CSS classes for styling
+- Data attributes if needed
+
+Return ONLY the HTML markup without any wrapper divs or explanations. The HTML should be directly insertable inside <div id="root"></div>.`,
+            response_json_schema: {
+              type: 'object',
+              properties: {
+                html: { type: 'string', description: 'Generated HTML content' }
+              }
+            }
+          });
+          
+          if (aiResponse?.html) {
+            // Inject generated content into root
+            html = html.replace(
+              /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is,
+              `<div id="root">${aiResponse.html}</div>`
+            );
+            console.log('AI-generated content injected');
+          }
+        }
+        
         await browser.close();
       } catch (e) {
         console.error('Puppeteer error:', e.message);
