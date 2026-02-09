@@ -130,18 +130,29 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Discovery phase
-    while (queue.length > 0 && discoveredPages.size < maxPages) {
+    // Discovery phase: combine multiple sources
+    const allDiscoveredPages = new Set();
+    
+    // 1. Extract from main page and follow links
+    let queue = [baseUrl];
+    while (queue.length > 0 && allDiscoveredPages.size < maxPages) {
       const url = queue.shift();
-      
-      if (discoveredPages.has(url)) continue;
-      discoveredPages.add(url);
+      if (allDiscoveredPages.has(url)) continue;
+      allDiscoveredPages.add(url);
       
       const newLinks = await fetchAndExtractLinks(url);
       for (const link of newLinks) {
-        if (!discoveredPages.has(link) && discoveredPages.size < maxPages) {
+        if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
           queue.push(link);
         }
+      }
+    }
+    
+    // 2. Try to fetch sitemap
+    const sitemapUrls = await fetchSitemap();
+    for (const url of sitemapUrls) {
+      if (allDiscoveredPages.size < maxPages) {
+        allDiscoveredPages.add(url);
       }
     }
 
