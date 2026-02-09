@@ -209,7 +209,8 @@ Deno.serve(async (req) => {
           css_count: cssLinks.length,
           script_count: scriptLinks.length,
           image_count: images.length,
-        }
+        },
+        screenshot_url,
       }
     });
   } catch (error) {
