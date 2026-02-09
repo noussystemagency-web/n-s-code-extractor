@@ -216,6 +216,123 @@ export default function Extractor() {
     }
   };
 
+  const handleCrawlWebsite = async (url) => {
+    if (!url) {
+      toast.error('Ingresa una URL válida');
+      return;
+    }
+
+    setIsCrawling(true);
+    setCrawlProgress([]);
+    setSiteData(null);
+    toast.info('Descubriendo y extrayendo páginas...');
+
+    try {
+      const response = await base44.functions.invoke('crawlWebsite', {
+        baseUrl: url,
+        maxPages: 20,
+        render_spa: options.render_spa,
+      });
+
+      if (response.data?.success) {
+        // Create progress items
+        const pages = response.data.data.pages.map(p => ({
+          ...p,
+          status: 'completed'
+        }));
+        
+        setCrawlProgress(pages);
+        setSiteData(response.data.data);
+        toast.success(`✅ ${response.data.data.totalPages} páginas extraídas`);
+      } else {
+        toast.error(response.data?.error || 'Error en la extracción');
+      }
+    } catch (err) {
+      toast.error('Error: ' + (err.message || 'No se pudo extraer'));
+    } finally {
+      setIsCrawling(false);
+    }
+  };
+
+  const handleSendSiteToBase44 = async () => {
+    if (!siteData || !siteData.pages.length) return;
+
+    try {
+      // Create a mega project with all pages
+      const projectName = `${siteData.siteName} - Sitio Completo`;
+      const combinedHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
+    nav { background: white; border-bottom: 1px solid #ddd; padding: 0 20px; }
+    nav a { display: inline-block; padding: 15px 20px; text-decoration: none; color: #333; border-bottom: 3px solid transparent; transition: all 0.2s; }
+    nav a:hover, nav a.active { color: #0066cc; border-bottom-color: #0066cc; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .page-content { display: none; }
+    .page-content.active { display: block; }
+  </style>
+</head>
+<body>
+  <nav id="site-nav">
+    ${siteData.pages.map((p, i) => `<a href="#page-${i}" class="nav-link ${i === 0 ? 'active' : ''}" data-page="${i}">${p.title}</a>`).join('')}
+  </nav>
+  
+  <div class="container">
+    ${siteData.pages.map((p, i) => `<div id="page-${i}" class="page-content ${i === 0 ? 'active' : ''}">${p.html}</div>`).join('')}
+  </div>
+
+  <style>
+    ${siteData.pages.map(p => p.css).filter(Boolean).join('\n')}
+  </style>
+
+  <script>
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        const pageId = link.getAttribute('data-page');
+        document.getElementById('page-' + pageId).classList.add('active');
+        link.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>`;
+
+      await base44.entities.ExtractedProject.create({
+        name: projectName,
+        url: siteData.baseUrl,
+        mode: 'url_complete',
+        html_content: combinedHtml.substring(0, 100000),
+        css_content: siteData.pages.map(p => p.css).join('\n\n').substring(0, 50000),
+        structure_json: JSON.stringify({ pages: siteData.pages.length }),
+        colors: [],
+        fonts: [],
+        assets: [],
+        metadata: {
+          title: projectName,
+          framework: 'Multi-page Site',
+          total_size: `${(combinedHtml.length / 1024).toFixed(1)} KB`,
+          page_count: siteData.pages.length,
+        },
+        status: 'completed',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('✅ Proyecto enviado a Base44');
+      setSiteData(null);
+      setCrawlProgress([]);
+    } catch (err) {
+      toast.error('Error enviando proyecto: ' + err.message);
+    }
+  };
+
   const handleSelectProject = (project) => {
     try {
       setCurrentUrl(project.url);
