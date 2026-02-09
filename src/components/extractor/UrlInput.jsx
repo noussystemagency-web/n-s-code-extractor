@@ -4,9 +4,16 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function UrlInput({ onSubmit, isLoading }) {
+export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
   const [url, setUrl] = useState('');
   const [focused, setFocused] = useState(false);
+
+  const handleUrlChange = (newUrl) => {
+    setUrl(newUrl);
+    if (onUrlChange) {
+      onUrlChange(newUrl);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -36,7 +43,7 @@ export default function UrlInput({ onSubmit, isLoading }) {
           <Input
             type="text"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(e) => handleUrlChange(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="https://ejemplo.com"

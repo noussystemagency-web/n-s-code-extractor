@@ -257,7 +257,11 @@ export default function Extractor() {
               </label>
             </div>
 
-            <UrlInput onSubmit={handleExtract} isLoading={isExtracting} />
+            <UrlInput 
+              onSubmit={handleExtract} 
+              isLoading={isExtracting}
+              onUrlChange={setCurrentUrl}
+            />
             <ExtractionOptions
               options={options}
               setOptions={setOptions}
