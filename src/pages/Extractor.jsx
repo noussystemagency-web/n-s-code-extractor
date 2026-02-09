@@ -93,25 +93,27 @@ export default function Extractor() {
         toast.success('✅ Extracción completada');
 
         // Save project
-        const projName = response.data.data?.metadata?.title || new URL(url).hostname;
-        await base44.entities.ExtractedProject.create({
-          name: projName,
-          url,
-          mode,
-          html_content: (response.data.data?.html || '').substring(0, 100000),
-          css_content: (response.data.data?.css?.inline || '').substring(0, 50000),
-          js_content: (response.data.data?.js?.inline || []).join('\n').substring(0, 50000),
-          structure_json: JSON.stringify(response.data.data?.structure || []),
-          colors: response.data.data?.assets?.colors?.slice(0, 30) || [],
-          fonts: response.data.data?.assets?.fonts || [],
-          assets: (response.data.data?.assets?.images || []).slice(0, 20).map(img => ({
-            type: 'image', url: img, name: img.split('/').pop()
-          })),
-          metadata: response.data.data?.metadata || {},
-          screenshot_url: response.data.data?.screenshot_url,
-          status: 'completed',
-        });
-        queryClient.invalidateQueries({ queryKey: ['projects'] });
+        if (response.data?.data) {
+          const projName = response.data.data?.metadata?.title || new URL(url).hostname;
+          await base44.entities.ExtractedProject.create({
+            name: projName,
+            url,
+            mode,
+            html_content: (response.data.data?.html || '').substring(0, 100000),
+            css_content: (response.data.data?.css?.inline || '').substring(0, 50000),
+            js_content: Array.isArray(response.data.data?.js?.inline) ? response.data.data.js.inline.join('\n').substring(0, 50000) : (response.data.data?.js?.inline || '').substring(0, 50000),
+            structure_json: JSON.stringify(response.data.data?.structure || []),
+            colors: response.data.data?.assets?.colors?.slice(0, 30) || [],
+            fonts: response.data.data?.assets?.fonts || [],
+            assets: (response.data.data?.assets?.images || []).slice(0, 20).map(img => ({
+              type: 'image', url: img, name: img.split('/').pop()
+            })),
+            metadata: response.data.data?.metadata || {},
+            screenshot_url: response.data.data?.screenshot_url,
+            status: 'completed',
+          });
+          queryClient.invalidateQueries({ queryKey: ['projects'] });
+        }
       } else {
         toast.error(response.data?.error || 'Error en la extracción');
       }
