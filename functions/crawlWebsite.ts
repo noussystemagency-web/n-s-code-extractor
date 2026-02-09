@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
     }
 
     // Extraction phase
-    const pages = Array.from(discoveredPages);
+    const pages = Array.from(allDiscoveredPages);
     
     for (let i = 0; i < pages.length; i++) {
       const pageUrl = pages[i];
