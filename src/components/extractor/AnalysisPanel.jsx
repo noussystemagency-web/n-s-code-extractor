@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   Eye, Search, AlertCircle, CheckCircle, Info, Loader2,
-  TrendingUp, AlertTriangle 
+  TrendingUp, AlertTriangle, Sparkles, Code, FileText
 } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -12,7 +12,9 @@ import { toast } from "sonner";
 export default function AnalysisPanel({ extractedData }) {
   const [a11yData, setA11yData] = useState(null);
   const [seoData, setSeoData] = useState(null);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
 
   const analyzeAccessibility = async () => {
     setIsAnalyzing(true);
@@ -45,6 +47,103 @@ export default function AnalysisPanel({ extractedData }) {
       toast.error('Error analizando SEO');
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const analyzeWithAI = async () => {
+    setIsAnalyzingAI(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Analiza esta página web extraída y proporciona un análisis detallado:
+
+**HTML (primeros 3000 caracteres):**
+\`\`\`html
+${(extractedData.html || '').substring(0, 3000)}
+\`\`\`
+
+**CSS (primeros 2000 caracteres):**
+\`\`\`css
+${(extractedData.css?.inline || '').substring(0, 2000)}
+\`\`\`
+
+**Metadata:**
+- Título: ${extractedData.metadata?.title || 'N/A'}
+- Framework: ${extractedData.metadata?.framework || 'N/A'}
+
+**Estructura detectada:**
+${JSON.stringify(extractedData.structure?.slice(0, 20) || [], null, 2)}
+
+Proporciona un análisis completo en las siguientes áreas:
+
+1. **SEO Improvements**: Identifica problemas y oportunidades de mejora SEO
+2. **Code Quality**: Evalúa la calidad del código, patrones obsoletos, y sugerencias de optimización
+3. **Metadata Suggestions**: Sugiere mejoras en meta tags, títulos, descripciones
+4. **Content Summary**: Resume el contenido y propósito de la página
+5. **Performance Tips**: Sugerencias específicas para mejorar rendimiento
+
+Sé específico y práctico en tus recomendaciones.`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            seo_improvements: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  issue: { type: 'string' },
+                  severity: { type: 'string', enum: ['high', 'medium', 'low'] },
+                  suggestion: { type: 'string' }
+                }
+              }
+            },
+            code_quality: {
+              type: 'object',
+              properties: {
+                score: { type: 'number' },
+                issues: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      type: { type: 'string' },
+                      description: { type: 'string' },
+                      fix: { type: 'string' }
+                    }
+                  }
+                },
+                best_practices: { type: 'array', items: { type: 'string' } }
+              }
+            },
+            metadata_suggestions: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                description: { type: 'string' },
+                keywords: { type: 'array', items: { type: 'string' } },
+                og_tags: { type: 'array', items: { type: 'string' } }
+              }
+            },
+            content_summary: {
+              type: 'object',
+              properties: {
+                purpose: { type: 'string' },
+                key_features: { type: 'array', items: { type: 'string' } },
+                target_audience: { type: 'string' }
+              }
+            },
+            performance_tips: { type: 'array', items: { type: 'string' } }
+          }
+        }
+      });
+
+      if (response) {
+        setAiAnalysis(response);
+        toast.success('✨ Análisis IA completado');
+      }
+    } catch (err) {
+      toast.error('Error en análisis IA: ' + err.message);
+    } finally {
+      setIsAnalyzingAI(false);
     }
   };
 
@@ -90,6 +189,10 @@ export default function AnalysisPanel({ extractedData }) {
           <TabsTrigger value="seo" className="text-xs">
             <Search className="w-3 h-3 mr-1.5" />
             SEO
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="text-xs">
+            <Sparkles className="w-3 h-3 mr-1.5" />
+            Análisis IA
           </TabsTrigger>
         </TabsList>
 
@@ -223,6 +326,192 @@ export default function AnalysisPanel({ extractedData }) {
                 </div>
               )}
             </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="ai" className="space-y-4">
+          {!aiAnalysis ? (
+            <div className="text-center py-8">
+              <Sparkles className="w-12 h-12 mx-auto text-amber-400 mb-3" />
+              <p className="text-sm text-slate-300 mb-2 font-medium">
+                Análisis IA Completo
+              </p>
+              <p className="text-xs text-slate-400 mb-4 max-w-md mx-auto">
+                SEO, calidad de código, metadata, resumen de contenido y tips de rendimiento
+              </p>
+              <Button
+                onClick={analyzeWithAI}
+                disabled={isAnalyzingAI || !extractedData}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+              >
+                {isAnalyzingAI ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analizando con IA...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Analizar con IA
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+              {/* SEO Improvements */}
+              {aiAnalysis.seo_improvements?.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Search className="w-4 h-4 text-green-400" />
+                    <h4 className="text-sm font-semibold text-green-400">
+                      Mejoras SEO ({aiAnalysis.seo_improvements.length})
+                    </h4>
+                  </div>
+                  {aiAnalysis.seo_improvements.map((item, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                      <div className="flex items-start justify-between mb-1">
+                        <p className="text-sm font-medium text-green-300">{item.issue}</p>
+                        <Badge className={`text-[10px] ${
+                          item.severity === 'high' ? 'bg-red-500/20 text-red-300 border-red-500/30' :
+                          item.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' :
+                          'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                        }`}>
+                          {item.severity}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-green-400/80">{item.suggestion}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Code Quality */}
+              {aiAnalysis.code_quality && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Code className="w-4 h-4 text-blue-400" />
+                    <h4 className="text-sm font-semibold text-blue-400">
+                      Calidad de Código
+                    </h4>
+                    <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+                      {aiAnalysis.code_quality.score}/10
+                    </Badge>
+                  </div>
+                  {aiAnalysis.code_quality.issues?.map((issue, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-sm font-medium text-blue-300 mb-1">{issue.type}</p>
+                      <p className="text-xs text-blue-400/80 mb-1">{issue.description}</p>
+                      <p className="text-xs text-blue-300 font-medium">💡 {issue.fix}</p>
+                    </div>
+                  ))}
+                  {aiAnalysis.code_quality.best_practices?.length > 0 && (
+                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-xs font-semibold text-blue-300 mb-2">✨ Buenas prácticas:</p>
+                      <ul className="text-xs text-blue-400/80 space-y-1">
+                        {aiAnalysis.code_quality.best_practices.map((bp, i) => (
+                          <li key={i}>• {bp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Metadata Suggestions */}
+              {aiAnalysis.metadata_suggestions && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-purple-400" />
+                    <h4 className="text-sm font-semibold text-purple-400">
+                      Sugerencias de Metadata
+                    </h4>
+                  </div>
+                  <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 space-y-2">
+                    {aiAnalysis.metadata_suggestions.title && (
+                      <div>
+                        <p className="text-xs font-semibold text-purple-300">Título sugerido:</p>
+                        <p className="text-xs text-purple-400/80">{aiAnalysis.metadata_suggestions.title}</p>
+                      </div>
+                    )}
+                    {aiAnalysis.metadata_suggestions.description && (
+                      <div>
+                        <p className="text-xs font-semibold text-purple-300">Descripción:</p>
+                        <p className="text-xs text-purple-400/80">{aiAnalysis.metadata_suggestions.description}</p>
+                      </div>
+                    )}
+                    {aiAnalysis.metadata_suggestions.keywords?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-purple-300">Keywords:</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {aiAnalysis.metadata_suggestions.keywords.map((kw, i) => (
+                            <Badge key={i} variant="outline" className="text-[10px] bg-purple-500/20 text-purple-300 border-purple-500/30">
+                              {kw}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Content Summary */}
+              {aiAnalysis.content_summary && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-indigo-400" />
+                    <h4 className="text-sm font-semibold text-indigo-400">
+                      Resumen de Contenido
+                    </h4>
+                  </div>
+                  <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 space-y-2">
+                    <div>
+                      <p className="text-xs font-semibold text-indigo-300">Propósito:</p>
+                      <p className="text-xs text-indigo-400/80">{aiAnalysis.content_summary.purpose}</p>
+                    </div>
+                    {aiAnalysis.content_summary.key_features?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-indigo-300">Características clave:</p>
+                        <ul className="text-xs text-indigo-400/80 space-y-0.5 ml-3">
+                          {aiAnalysis.content_summary.key_features.map((kf, i) => (
+                            <li key={i}>• {kf}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {aiAnalysis.content_summary.target_audience && (
+                      <div>
+                        <p className="text-xs font-semibold text-indigo-300">Audiencia objetivo:</p>
+                        <p className="text-xs text-indigo-400/80">{aiAnalysis.content_summary.target_audience}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Performance Tips */}
+              {aiAnalysis.performance_tips?.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-orange-400" />
+                    <h4 className="text-sm font-semibold text-orange-400">
+                      Tips de Rendimiento
+                    </h4>
+                  </div>
+                  <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <ul className="text-xs text-orange-400/80 space-y-1">
+                      {aiAnalysis.performance_tips.map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-orange-400 mt-0.5">⚡</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </TabsContent>
       </Tabs>
