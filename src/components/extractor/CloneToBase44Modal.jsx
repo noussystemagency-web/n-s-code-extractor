@@ -52,6 +52,7 @@ export default function CloneToBase44Modal({ open, onOpenChange, data }) {
   const [projectName, setProjectName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleClone = async () => {
     setIsProcessing(true);
