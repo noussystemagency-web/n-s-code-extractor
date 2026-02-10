@@ -67,11 +67,10 @@ export default function ProjectHistory() {
               <TableRow className="border-slate-200 hover:bg-transparent bg-slate-50">
                 <TableHead className="text-slate-600 text-xs font-semibold">Proyecto</TableHead>
                 <TableHead className="text-slate-600 text-xs font-semibold">URL</TableHead>
-                <TableHead className="text-slate-600 text-xs font-semibold">Modo</TableHead>
                 <TableHead className="text-slate-600 text-xs font-semibold">Framework</TableHead>
                 <TableHead className="text-slate-600 text-xs font-semibold">Fecha</TableHead>
                 <TableHead className="text-slate-600 text-xs font-semibold">Estado</TableHead>
-                <TableHead className="text-slate-600 text-xs font-semibold w-12"></TableHead>
+                <TableHead className="text-slate-600 text-xs font-semibold text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
