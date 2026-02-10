@@ -23,6 +23,7 @@ import ReactConverter from '../components/extractor/ReactConverter';
 import SiteExtractionProgress from '../components/extractor/SiteExtractionProgress';
 import FullSitePreview from '../components/extractor/FullSitePreview';
 import AICodeGenerator from '../components/extractor/AICodeGenerator';
+import AICodeManipulation from '../components/extractor/AICodeManipulation';
 
 export default function Extractor() {
   const [mode, setMode] = useState('full_page');
@@ -666,6 +667,24 @@ export default function Extractor() {
 
             {/* AI Code Generator */}
             <AICodeGenerator onInsertCode={handleInsertGeneratedCode} />
+
+            {/* AI Code Manipulation */}
+            {extractedData && (
+              <AICodeManipulation
+                html={extractedData.html}
+                css={extractedData.css?.inline}
+                js={(extractedData.js?.inline || []).join('\n')}
+                onApplyCode={(code) => {
+                  setExtractedData({
+                    ...extractedData,
+                    html: code.html || extractedData.html,
+                    css: { ...extractedData.css, inline: code.css || extractedData.css?.inline },
+                    js: { ...extractedData.js, inline: code.js ? [code.js] : extractedData.js?.inline },
+                  });
+                  toast.success('Código aplicado exitosamente');
+                }}
+              />
+            )}
           </div>
         </div>
 
