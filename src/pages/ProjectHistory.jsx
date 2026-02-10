@@ -7,14 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
-import { Search, Trash2, ExternalLink, ArrowLeft, Folder, Clock, Globe, Cpu } from "lucide-react";
+import { Search, Trash2, ExternalLink, ArrowLeft, Folder, Clock, Globe, Cpu, Eye, Copy, Download, Rocket } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { toast } from "sonner";
 import moment from 'moment';
+import ProjectDetailsModal from '../components/extractor/ProjectDetailsModal';
 
 export default function ProjectHistory() {
   const [search, setSearch] = useState('');
+  const [selectedProject, setSelectedProject] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: projects = [], isLoading } = useQuery({
