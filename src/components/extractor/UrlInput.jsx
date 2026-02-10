@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
   const [url, setUrl] = useState('');
   const [focused, setFocused] = useState(false);
+  const inputRef = React.useRef(null);
 
   const handleUrlChange = (newUrl) => {
     setUrl(newUrl);
@@ -18,6 +19,9 @@ export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
       handleUrlChange(text);
     } catch (err) {
       console.error('Error al pegar:', err);
@@ -50,13 +54,14 @@ export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
             <Globe className="w-4 h-4 text-slate-400" />
           </div>
           <input
+            ref={inputRef}
             type="text"
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="https://ejemplo.com"
-            className="pl-10 pr-32 h-11 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-blue-400 focus-visible:ring-2 focus-visible:outline-none w-full border"
+            className="pl-10 pr-32 h-11 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus:ring-blue-400 focus:ring-2 focus:outline-none w-full border"
             disabled={isLoading}
             autoComplete="off"
           />
