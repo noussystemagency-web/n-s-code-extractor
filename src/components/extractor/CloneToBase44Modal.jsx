@@ -226,6 +226,7 @@ Crea todos los componentes necesarios en la carpeta components/ y la página pri
               {method === 'prompt' && 'Ahora pega el prompt en Base44 IA'}
               {method === 'copy' && 'Código copiado al portapapeles'}
               {method === 'download' && 'Archivo descargado'}
+              {method === 'archive' && 'Revisa la pestaña Historial'}
             </p>
           </div>
         ) : (
