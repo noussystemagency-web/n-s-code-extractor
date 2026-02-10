@@ -44,10 +44,6 @@ export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
             type="text"
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
-            onPaste={(e) => {
-              const pastedText = e.clipboardData.getData('text');
-              handleUrlChange(pastedText);
-            }}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="https://ejemplo.com"
