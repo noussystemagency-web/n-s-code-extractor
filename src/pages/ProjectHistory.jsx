@@ -76,7 +76,7 @@ export default function ProjectHistory() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-16 text-slate-500">
+                  <TableCell colSpan={6} className="text-center py-16 text-slate-500">
                     <Folder className="w-10 h-10 mx-auto mb-2 text-slate-400" />
                     <p className="text-sm text-slate-700">No hay proyectos</p>
                   </TableCell>
@@ -85,13 +85,13 @@ export default function ProjectHistory() {
                 filtered.map(project => (
                   <TableRow key={project.id} className="border-slate-200 hover:bg-slate-50">
                     <TableCell>
-                      <Link
-                        to={createPageUrl('Extractor') + `?projectId=${project.id}`}
-                        className="flex items-center gap-2 text-slate-700 hover:text-blue-600 transition-colors"
+                      <button
+                        onClick={() => setSelectedProject(project)}
+                        className="flex items-center gap-2 text-slate-700 hover:text-blue-600 transition-colors text-left"
                       >
                         <Folder className="w-4 h-4 text-blue-600" />
                         <span className="text-sm font-medium">{project.name || 'Sin nombre'}</span>
-                      </Link>
+                      </button>
                     </TableCell>
                     <TableCell>
                       <a
@@ -103,11 +103,6 @@ export default function ProjectHistory() {
                         <Globe className="w-3 h-3 flex-shrink-0" />
                         {project.url}
                       </a>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-[10px] border-slate-300 text-slate-600">
-                        {project.mode?.replace('_', ' ')}
-                      </Badge>
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-slate-600 flex items-center gap-1">
@@ -132,14 +127,24 @@ export default function ProjectHistory() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDelete(project.id)}
-                        className="h-7 w-7 text-slate-500 hover:text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedProject(project)}
+                          className="h-7 px-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(project.id)}
+                          className="h-7 px-2 text-slate-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
