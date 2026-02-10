@@ -196,14 +196,43 @@ ${project.js_content || ''}
                           variant="ghost"
                           onClick={() => setSelectedProject(project)}
                           className="h-7 px-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                          title="Ver detalles"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => handleClone(project)}
+                          className="h-7 px-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                          title="Clonar a Base44"
+                        >
+                          <Rocket className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCopy(project)}
+                          className="h-7 px-2 text-slate-600 hover:text-slate-700 hover:bg-slate-100"
+                          title="Copiar código"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDownload(project)}
+                          className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          title="Descargar HTML"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => handleDelete(project.id)}
                           className="h-7 px-2 text-slate-500 hover:text-red-600 hover:bg-red-50"
+                          title="Eliminar"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
