@@ -65,12 +65,17 @@ export default function Extractor() {
     queryFn: () => base44.entities.ExtractedProject.list('-created_date', 8),
   });
 
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [frameworkFilter, setFrameworkFilter] = useState('all');
+
   const stats = {
     total: projects.length,
     completed: projects.filter(p => p.status === 'completed').length,
     extracting: projects.filter(p => p.status === 'extracting').length,
     error: projects.filter(p => p.status === 'error').length,
   };
+
+  const frameworks = [...new Set(projects.map(p => p.metadata?.framework).filter(Boolean))];
 
   const handleExtract = async (url) => {
     if (!url) {
@@ -386,18 +391,32 @@ export default function Extractor() {
               <p className="text-[10px] text-slate-500 -mt-0.5">Web Cloner & Analyzer</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {extractedData?.metadata && <MetadataBar metadata={extractedData.metadata} />}
             {stats.total > 0 && (
-              <div className="flex items-center gap-3 text-xs">
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100">
-                  <span className="text-slate-500">Total:</span>
-                  <span className="font-semibold text-slate-900">{stats.total}</span>
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+                  <span className="text-slate-600 font-medium">Total:</span>
+                  <span className="font-bold text-slate-900">{stats.total}</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-50">
-                  <span className="text-green-600">✓</span>
-                  <span className="font-semibold text-green-700">{stats.completed}</span>
-                </div>
+                {stats.completed > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 border border-green-200">
+                    <span className="text-green-600">✓</span>
+                    <span className="font-bold text-green-700">{stats.completed}</span>
+                  </div>
+                )}
+                {stats.extracting > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200">
+                    <span className="text-blue-600">⟳</span>
+                    <span className="font-bold text-blue-700">{stats.extracting}</span>
+                  </div>
+                )}
+                {stats.error > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200">
+                    <span className="text-red-600">✕</span>
+                    <span className="font-bold text-red-700">{stats.error}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

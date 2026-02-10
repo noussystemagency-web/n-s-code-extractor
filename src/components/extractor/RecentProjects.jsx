@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
-import { Folder, Clock, Trash2, Eye, Rocket, Copy, Download, Search } from "lucide-react";
+import { Folder, Clock, Trash2, Eye, Rocket, Copy, Download, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import moment from "moment";
 import ProjectDetailsModal from './ProjectDetailsModal';
 
 export default function RecentProjects({ projects, onSelect, onDelete }) {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [frameworkFilter, setFrameworkFilter] = useState('all');
   const [selectedProject, setSelectedProject] = useState(null);
 
   if (!projects || projects.length === 0) return null;
 
+  const frameworks = [...new Set(projects.map(p => p.metadata?.framework).filter(Boolean))];
+
   const filtered = projects.filter(p => {
-    if (!search) return true;
-    return p.name?.toLowerCase().includes(search.toLowerCase()) ||
-           p.url?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || 
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.url?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || p.status === statusFilter;
+    const matchFramework = frameworkFilter === 'all' || p.metadata?.framework === frameworkFilter;
+    return matchSearch && matchStatus && matchFramework;
   });
 
   const handleCopy = async (project, e) => {
@@ -78,14 +86,40 @@ ${project.html_content || ''}
             Proyectos recientes
           </h3>
           {projects.length > 0 && (
-            <div className="relative w-48">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar..."
-                className="pl-7 h-7 text-xs bg-white border-slate-200"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative w-40">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar..."
+                  className="pl-7 h-7 text-xs bg-white border-slate-200"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-28 h-7 text-xs bg-white border-slate-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="completed">Completados</SelectItem>
+                  <SelectItem value="extracting">Extrayendo</SelectItem>
+                  <SelectItem value="error">Errores</SelectItem>
+                </SelectContent>
+              </Select>
+              {frameworks.length > 0 && (
+                <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
+                  <SelectTrigger className="w-32 h-7 text-xs bg-white border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Frameworks</SelectItem>
+                    {frameworks.map(fw => (
+                      <SelectItem key={fw} value={fw}>{fw}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           )}
         </div>
