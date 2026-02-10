@@ -17,6 +17,10 @@ import ProjectDetailsModal from '../components/extractor/ProjectDetailsModal';
 export default function ProjectHistory() {
   const [search, setSearch] = useState('');
   const [selectedProject, setSelectedProject] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [frameworkFilter, setFrameworkFilter] = useState('all');
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
   const queryClient = useQueryClient();
 
   const { data: projects = [], isLoading } = useQuery({
@@ -25,10 +29,25 @@ export default function ProjectHistory() {
   });
 
   const filtered = projects.filter(p => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return p.name?.toLowerCase().includes(q) || p.url?.toLowerCase().includes(q);
+    const matchesSearch = !search || 
+      p.name?.toLowerCase().includes(search.toLowerCase()) || 
+      p.url?.toLowerCase().includes(search.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+    const matchesFramework = frameworkFilter === 'all' || 
+      p.metadata?.framework?.toLowerCase().includes(frameworkFilter.toLowerCase());
+    
+    return matchesSearch && matchesStatus && matchesFramework;
   });
+
+  const stats = {
+    total: projects.length,
+    completed: projects.filter(p => p.status === 'completed').length,
+    extracting: projects.filter(p => p.status === 'extracting').length,
+    error: projects.filter(p => p.status === 'error').length,
+  };
+
+  const frameworks = [...new Set(projects.map(p => p.metadata?.framework).filter(Boolean))];
 
   const handleDelete = async (id) => {
     await base44.entities.ExtractedProject.delete(id);
@@ -99,6 +118,26 @@ ${project.js_content || ''}
     }
   };
 
+  const handleStartEdit = (project) => {
+    setEditingId(project.id);
+    setEditingName(project.name || '');
+  };
+
+  const handleSaveEdit = async (id) => {
+    if (editingName.trim()) {
+      await base44.entities.ExtractedProject.update(id, { name: editingName.trim() });
+      queryClient.invalidateQueries({ queryKey: ['all-projects'] });
+      toast.success('Nombre actualizado');
+    }
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingName('');
+  };
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
@@ -114,14 +153,59 @@ ${project.js_content || ''}
       </header>
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
-        <div className="relative max-w-sm mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nombre o URL..."
-            className="pl-10 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 h-10"
-          />
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <div className="text-2xl font-bold text-slate-900">{stats.total}</div>
+            <div className="text-xs text-slate-500 mt-1">Total proyectos</div>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+            <div className="text-xs text-slate-500 mt-1">Completados</div>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <div className="text-2xl font-bold text-yellow-600">{stats.extracting}</div>
+            <div className="text-xs text-slate-500 mt-1">En progreso</div>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <div className="text-2xl font-bold text-red-600">{stats.error}</div>
+            <div className="text-xs text-slate-500 mt-1">Con errores</div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre o URL..."
+              className="pl-10 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 h-10"
+            />
+          </div>
+          
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-10 px-3 rounded-md border border-slate-200 bg-white text-sm text-slate-900"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="completed">Completados</option>
+            <option value="extracting">En progreso</option>
+            <option value="error">Con errores</option>
+          </select>
+
+          <select
+            value={frameworkFilter}
+            onChange={(e) => setFrameworkFilter(e.target.value)}
+            className="h-10 px-3 rounded-md border border-slate-200 bg-white text-sm text-slate-900"
+          >
+            <option value="all">Todos los frameworks</option>
+            {frameworks.map(fw => (
+              <option key={fw} value={fw}>{fw}</option>
+            ))}
+          </select>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
@@ -148,13 +232,45 @@ ${project.js_content || ''}
                 filtered.map(project => (
                   <TableRow key={project.id} className="border-slate-200 hover:bg-slate-50">
                     <TableCell>
-                      <button
-                        onClick={() => setSelectedProject(project)}
-                        className="flex items-center gap-2 text-slate-700 hover:text-blue-600 transition-colors text-left"
-                      >
-                        <Folder className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-medium">{project.name || 'Sin nombre'}</span>
-                      </button>
+                      {editingId === project.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="h-7 text-sm"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(project.id);
+                              if (e.key === 'Escape') handleCancelEdit();
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveEdit(project.id)}
+                            className="h-7 px-2"
+                          >
+                            Guardar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleCancelEdit}
+                            className="h-7 px-2"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedProject(project)}
+                          onDoubleClick={() => handleStartEdit(project)}
+                          className="flex items-center gap-2 text-slate-700 hover:text-blue-600 transition-colors text-left"
+                          title="Doble clic para editar"
+                        >
+                          <Folder className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium">{project.name || 'Sin nombre'}</span>
+                        </button>
+                      )}
                     </TableCell>
                     <TableCell>
                       <a

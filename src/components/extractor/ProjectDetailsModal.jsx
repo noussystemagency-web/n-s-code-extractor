@@ -121,6 +121,17 @@ ${project.js_content || ''}
           </div>
         </DialogHeader>
 
+        {/* Screenshot Preview */}
+        {project.screenshot_url && (
+          <div className="mb-4">
+            <img
+              src={project.screenshot_url}
+              alt="Screenshot"
+              className="w-full h-48 object-cover rounded-lg border border-slate-200"
+            />
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-200">
           <Button
