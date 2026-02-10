@@ -22,6 +22,7 @@ import AnalysisPanel from '../components/extractor/AnalysisPanel';
 import ReactConverter from '../components/extractor/ReactConverter';
 import SiteExtractionProgress from '../components/extractor/SiteExtractionProgress';
 import FullSitePreview from '../components/extractor/FullSitePreview';
+import AICodeGenerator from '../components/extractor/AICodeGenerator';
 
 export default function Extractor() {
   const [mode, setMode] = useState('full_page');
@@ -176,6 +177,35 @@ export default function Extractor() {
       js: { ...extractedData.js, inline: [edited.js] },
     });
     setShowEditor(false);
+  };
+
+  const handleInsertGeneratedCode = (generatedCode) => {
+    if (!extractedData) {
+      // Create new extracted data from generated code
+      setExtractedData({
+        html: generatedCode.html || '',
+        css: { inline: generatedCode.css || '', external: [], links: [] },
+        js: { inline: generatedCode.js ? [generatedCode.js] : [], external_links: [] },
+        structure: [],
+        assets: { images: [], fonts: [], colors: [] },
+        metadata: { title: 'Código Generado por IA', framework: 'Generated' },
+      });
+    } else {
+      // Append to existing extracted data
+      setExtractedData({
+        ...extractedData,
+        html: (extractedData.html || '') + '\n\n' + (generatedCode.html || ''),
+        css: {
+          ...extractedData.css,
+          inline: (extractedData.css?.inline || '') + '\n\n' + (generatedCode.css || ''),
+        },
+        js: {
+          ...extractedData.js,
+          inline: [...(extractedData.js?.inline || []), generatedCode.js || ''].filter(Boolean),
+        },
+      });
+    }
+    toast.success('Código insertado en el extractor');
   };
 
   const handleDetectComponents = async () => {
@@ -615,6 +645,9 @@ export default function Extractor() {
             {extractedData && (
               <AnalysisPanel extractedData={extractedData} />
             )}
+
+            {/* AI Code Generator */}
+            <AICodeGenerator onInsertCode={handleInsertGeneratedCode} />
           </div>
         </div>
 
