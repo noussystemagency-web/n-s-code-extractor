@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Loader2, Globe } from "lucide-react";
+import { ArrowRight, Loader2, Globe, Clipboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
@@ -12,6 +12,15 @@ export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
     setUrl(newUrl);
     if (onUrlChange) {
       onUrlChange(newUrl);
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      handleUrlChange(text);
+    } catch (err) {
+      console.error('Error al pegar:', err);
     }
   };
 
@@ -41,16 +50,26 @@ export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
             <Globe className="w-4 h-4 text-slate-400" />
           </div>
           <Input
-            type="text"
+            type="url"
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="https://ejemplo.com"
-            className="pl-10 pr-24 h-11 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-0 focus-visible:border-blue-400"
+            className="pl-10 pr-32 h-11 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-0 focus-visible:border-blue-400"
             disabled={isLoading}
             autoComplete="off"
           />
+          <Button
+            type="button"
+            onClick={handlePaste}
+            disabled={isLoading}
+            size="sm"
+            variant="ghost"
+            className="absolute right-20 top-1/2 -translate-y-1/2 h-8 px-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+          >
+            <Clipboard className="w-3.5 h-3.5" />
+          </Button>
           <Button
             type="submit"
             disabled={!url.trim() || isLoading}
