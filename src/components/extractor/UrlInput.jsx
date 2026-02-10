@@ -55,10 +55,6 @@ export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
             onChange={(e) => handleUrlChange(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            onPaste={(e) => {
-              const pastedText = e.clipboardData.getData('text');
-              handleUrlChange(pastedText);
-            }}
             placeholder="https://ejemplo.com"
             className="pl-10 pr-32 h-11 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-blue-400 focus-visible:ring-2 focus-visible:outline-none w-full border"
             disabled={isLoading}
