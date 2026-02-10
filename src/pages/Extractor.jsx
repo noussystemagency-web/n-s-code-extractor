@@ -94,6 +94,15 @@ export default function Extractor() {
     setExtractedData(null);
     setScreenshotUrl(null);
     toast.info('Extrayendo contenido...');
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification({
+        type: 'loading',
+        title: 'Extrayendo contenido',
+        message: `Procesando ${url}...`
+      });
+    }
 
     try {
       const functionName = useAdvancedExtraction ? 'extractWebPageAdvanced' : 'extractWebPage';
@@ -109,6 +118,15 @@ export default function Extractor() {
         setExtractedData(response.data.data);
         setScreenshotUrl(response.data.data?.screenshot_url);
         toast.success('✅ Extracción completada');
+        
+        // Add notification
+        if (window.addNotification) {
+          window.addNotification({
+            type: 'success',
+            title: 'Extracción completada',
+            message: `${response.data.data?.metadata?.title || 'Página'} extraída exitosamente`
+          });
+        }
 
         // Save project
         if (response.data?.data) {
