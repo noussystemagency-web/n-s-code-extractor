@@ -120,6 +120,42 @@ ${data.html || ''}
           setSuccess(false);
           onOpenChange(false);
         }, 2000);
+      } else if (method === 'archive') {
+        // Archive complete project
+        const prompt = generatePromptForBase44(data, projectName);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const projectId = `${timestamp}-${(projectName || 'proyecto').toLowerCase().replace(/\s+/g, '-')}`;
+        
+        await base44.entities.ExtractedProject.create({
+          name: projectName || 'Proyecto Archivado',
+          url: data.metadata?.source_url || 'Extracción manual',
+          mode: 'full_page',
+          html_content: (data.html || '').substring(0, 100000),
+          css_content: (data.css?.inline || '').substring(0, 50000),
+          js_content: (data.js?.inline || []).join('\n').substring(0, 50000),
+          structure_json: JSON.stringify(data.structure || []),
+          colors: data.assets?.colors?.slice(0, 30) || [],
+          fonts: data.assets?.fonts || [],
+          assets: (data.assets?.images || []).slice(0, 20).map(img => ({
+            type: 'image', url: img, name: img.split('/').pop()
+          })),
+          metadata: {
+            ...data.metadata,
+            archived_at: new Date().toISOString(),
+            project_id: projectId,
+          },
+          generated_prompt: prompt,
+          screenshot_url: data.screenshot_url,
+          status: 'completed',
+        });
+        
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+        toast.success('Proyecto archivado en Historial');
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+          onOpenChange(false);
+        }, 2000);
       }
     } catch (err) {
       toast.error('Error: ' + err.message);
