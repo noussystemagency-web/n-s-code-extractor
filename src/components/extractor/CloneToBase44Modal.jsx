@@ -37,6 +37,12 @@ const CLONE_METHODS = [
     icon: Download,
     desc: 'Descarga ZIP con todos los archivos' 
   },
+  { 
+    id: 'archive', 
+    label: 'Archivar completo', 
+    icon: Archive,
+    desc: 'Guarda automáticamente todo (código + prompt) en Historial' 
+  },
 ];
 
 export default function CloneToBase44Modal({ open, onOpenChange, data }) {
