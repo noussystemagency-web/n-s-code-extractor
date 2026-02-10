@@ -49,14 +49,14 @@ export default function UrlInput({ onSubmit, isLoading, onUrlChange }) {
           <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
             <Globe className="w-4 h-4 text-slate-400" />
           </div>
-          <Input
-            type="url"
+          <input
+            type="text"
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="https://ejemplo.com"
-            className="pl-10 pr-32 h-11 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-0 focus-visible:border-blue-400"
+            className="pl-10 pr-32 h-11 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-blue-400 focus-visible:ring-2 focus-visible:outline-none w-full border"
             disabled={isLoading}
             autoComplete="off"
           />
