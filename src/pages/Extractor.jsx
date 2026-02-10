@@ -60,10 +60,17 @@ export default function Extractor() {
 
   const queryClient = useQueryClient();
 
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.ExtractedProject.list('-created_date', 8),
   });
+
+  const stats = {
+    total: projects.length,
+    completed: projects.filter(p => p.status === 'completed').length,
+    extracting: projects.filter(p => p.status === 'extracting').length,
+    error: projects.filter(p => p.status === 'error').length,
+  };
 
   const handleExtract = async (url) => {
     if (!url) {
@@ -379,8 +386,20 @@ export default function Extractor() {
               <p className="text-[10px] text-slate-500 -mt-0.5">Web Cloner & Analyzer</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {extractedData?.metadata && <MetadataBar metadata={extractedData.metadata} />}
+            {stats.total > 0 && (
+              <div className="flex items-center gap-3 text-xs">
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100">
+                  <span className="text-slate-500">Total:</span>
+                  <span className="font-semibold text-slate-900">{stats.total}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-50">
+                  <span className="text-green-600">✓</span>
+                  <span className="font-semibold text-green-700">{stats.completed}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
