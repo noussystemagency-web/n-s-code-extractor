@@ -36,6 +36,69 @@ export default function ProjectHistory() {
     toast.success('Proyecto eliminado');
   };
 
+  const handleCopy = async (project) => {
+    const fullCode = `<!-- ${project.name} -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${project.name}</title>
+  <style>
+${project.css_content || ''}
+  </style>
+</head>
+<body>
+${project.html_content || ''}
+<script>
+${project.js_content || ''}
+</script>
+</body>
+</html>`;
+    await navigator.clipboard.writeText(fullCode);
+    toast.success('Código copiado');
+  };
+
+  const handleDownload = (project) => {
+    const fullCode = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${project.name}</title>
+  <style>
+${project.css_content || ''}
+  </style>
+</head>
+<body>
+${project.html_content || ''}
+<script>
+${project.js_content || ''}
+</script>
+</body>
+</html>`;
+    const blob = new Blob([fullCode], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${project.name.replace(/\s+/g, '-')}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Proyecto descargado');
+  };
+
+  const handleClone = async (project) => {
+    if (project.generated_prompt) {
+      await navigator.clipboard.writeText(project.generated_prompt);
+      toast.success('Prompt IA copiado');
+      toast.info('Pégalo en Base44 IA', { duration: 4000 });
+    } else {
+      await handleCopy(project);
+      toast.info('Código copiado - pégalo en Base44', { duration: 4000 });
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
