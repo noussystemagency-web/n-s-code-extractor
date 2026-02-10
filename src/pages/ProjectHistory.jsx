@@ -153,6 +153,12 @@ export default function ProjectHistory() {
           </Table>
         </div>
       </div>
+
+      <ProjectDetailsModal
+        open={!!selectedProject}
+        onOpenChange={(open) => !open && setSelectedProject(null)}
+        project={selectedProject}
+      />
     </div>
   );
 }
