@@ -606,8 +606,8 @@ export default function Extractor() {
                       isSending={false}
                     />
                     <AICodeManipulation
-                      html={siteData.pages.map(p => p.html).join('\n\n')}
-                      css={siteData.pages.map(p => p.css).filter(Boolean).join('\n\n')}
+                      html={siteData.pages.slice(0, 3).map(p => p.html).join('\n\n').substring(0, 30000)}
+                      css={siteData.pages.map(p => p.css).filter(Boolean).join('\n\n').substring(0, 15000)}
                       js=""
                       onApplyCode={() => {}}
                     />
