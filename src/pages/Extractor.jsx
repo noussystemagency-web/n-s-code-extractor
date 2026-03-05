@@ -465,121 +465,110 @@ export default function Extractor() {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
-          {/* Left Panel - Controls */}
-          <div className="space-y-5 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
-            <ModeSelector mode={mode} setMode={setMode} />
+      <div className="px-4 md:px-6 py-0">
+        <div className="flex gap-0" style={{height: 'calc(100vh - 120px)'}}>
+
+          {/* ── LEFT PANEL ── fixed width, scrollable content, fixed bottom buttons */}
+          <div className="flex flex-col bg-white border-r border-slate-200 shadow-sm" style={{width: '380px', minWidth: '380px', flexShrink: 0}}>
             
-            <div className="space-y-2 bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
-              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                <input
-                  type="checkbox"
-                  checked={options.render_spa}
-                  onChange={(e) => setOptions({...options, render_spa: e.target.checked})}
-                  className="w-4 h-4 rounded border-slate-300 bg-white text-amber-600 focus:ring-amber-500"
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* URL Input */}
+              <div className="px-4 pt-4 pb-3">
+                <UrlInput 
+                  onSubmit={handleExtract} 
+                  isLoading={isExtracting}
+                  onUrlChange={setCurrentUrl}
                 />
-                <div>
-                  <div className="text-sm text-slate-700 font-medium">Renderizar JavaScript (SPAs)</div>
-                  <div className="text-[11px] text-slate-500">Ejecuta JS antes de extraer</div>
+              </div>
+
+              <div className="border-t border-slate-100" />
+
+              {/* Section 1: Modo de Extracción */}
+              <div className="px-4 py-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Modo de Extracción</span>
+                  <div className="flex-1 h-px bg-slate-200" />
                 </div>
-              </label>
-              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                <input
-                  type="checkbox"
-                  checked={useAdvancedExtraction}
-                  onChange={(e) => setUseAdvancedExtraction(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500"
-                />
-                <div>
-                  <div className="text-sm text-slate-700 font-medium">Extracción Avanzada</div>
-                  <div className="text-[11px] text-slate-500">Navegador headless + más opciones</div>
+                <ModeSelector mode={mode} setMode={setMode} />
+              </div>
+
+              <div className="border-t border-slate-100" />
+
+              {/* Section 2: Opciones Avanzadas */}
+              <div className="px-4 py-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Opciones Avanzadas</span>
+                  <div className="flex-1 h-px bg-slate-200" />
                 </div>
-              </label>
-              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                <input
-                  type="checkbox"
-                  checked={useEnhancedComponentDetection}
-                  onChange={(e) => setUseEnhancedComponentDetection(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500"
-                />
-                <div>
-                  <div className="text-sm text-slate-700 font-medium">Detección Mejorada</div>
-                  <div className="text-[11px] text-slate-500">Análisis profundo de componentes</div>
+                <div className="space-y-1">
+                  <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                    <input type="checkbox" checked={options.render_spa} onChange={(e) => setOptions({...options, render_spa: e.target.checked})} className="w-4 h-4 rounded border-slate-300 bg-white text-amber-600 focus:ring-amber-500" />
+                    <div>
+                      <div className="text-xs text-slate-700 font-medium">Renderizar JavaScript (SPAs)</div>
+                      <div className="text-[10px] text-slate-500">Ejecuta JS antes de extraer</div>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                    <input type="checkbox" checked={useAdvancedExtraction} onChange={(e) => setUseAdvancedExtraction(e.target.checked)} className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500" />
+                    <div>
+                      <div className="text-xs text-slate-700 font-medium">Extracción Avanzada</div>
+                      <div className="text-[10px] text-slate-500">Navegador headless + más opciones</div>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                    <input type="checkbox" checked={useEnhancedComponentDetection} onChange={(e) => setUseEnhancedComponentDetection(e.target.checked)} className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500" />
+                    <div>
+                      <div className="text-xs text-slate-700 font-medium">Detección Mejorada</div>
+                      <div className="text-[10px] text-slate-500">Análisis profundo de componentes</div>
+                    </div>
+                  </label>
                 </div>
-              </label>
+                <div className="mt-3">
+                  <ExtractionOptions options={options} setOptions={setOptions} cleanup={cleanup} setCleanup={setCleanup} />
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100" />
+
+              {/* Section 3: Optimización */}
+              <div className="px-4 py-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Optimización</span>
+                  <div className="flex-1 h-px bg-slate-200" />
+                </div>
+                <AdvancedOptions options={optimizationOptions} setOptions={setOptimizationOptions} />
+              </div>
             </div>
 
-            <UrlInput 
-              onSubmit={handleExtract} 
-              isLoading={isExtracting}
-              onUrlChange={setCurrentUrl}
-            />
-            <ExtractionOptions
-              options={options}
-              setOptions={setOptions}
-              cleanup={cleanup}
-              setCleanup={setCleanup}
-            />
-            <AdvancedOptions
-              options={optimizationOptions}
-              setOptions={setOptimizationOptions}
-            />
-            <div className="space-y-2">
+            {/* ── FIXED BOTTOM BUTTONS ── */}
+            <div className="border-t border-slate-200 bg-white px-4 py-3 space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={() => currentUrl && handleExtract(currentUrl)}
                   disabled={!currentUrl || isExtracting || isCrawling}
                   className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
                 >
-                  {isExtracting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Extrayendo
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4 mr-2" />
-                      Extraer
-                    </>
-                  )}
+                  {isExtracting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Extrayendo</>) : (<><Zap className="w-4 h-4 mr-2" />Extraer</>)}
                 </Button>
                 <Button
                   onClick={() => currentUrl && handleCrawlWebsite(currentUrl)}
                   disabled={!currentUrl || isCrawling || isExtracting}
                   className="h-11 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition-all"
                 >
-                  {isCrawling ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Crawling
-                    </>
-                  ) : (
-                    <>
-                      🕷️
-                    </>
-                  )}
+                  {isCrawling ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Crawling</>) : '🕷️ Crawl'}
                 </Button>
               </div>
               {extractedData && (
-                <Button
-                  onClick={handleOptimizeCode}
-                  disabled={isOptimizing}
-                  variant="outline"
-                  className="w-full h-10 bg-white border-indigo-300 text-indigo-600 hover:bg-indigo-50"
-                >
-                  {isOptimizing ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                      Optimizando...
-                    </>
-                  ) : (
-                    'Optimizar Código'
-                  )}
+                <Button onClick={handleOptimizeCode} disabled={isOptimizing} variant="outline" className="w-full h-9 bg-white border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-sm">
+                  {isOptimizing ? (<><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />Optimizando...</>) : 'Optimizar Código'}
                 </Button>
               )}
             </div>
           </div>
+
+          {/* Divider */}
+          <div className="w-px bg-slate-200 flex-shrink-0" />
 
           {/* Right Panel - Preview & Code */}
           <div className="space-y-4">
