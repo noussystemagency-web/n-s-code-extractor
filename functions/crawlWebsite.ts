@@ -203,44 +203,36 @@ Retorna JSON: {"routes": ["/route1", "/route2"]}`;
           html = await response.text();
         }
         
-        // Always try to fill empty or small root divs with AI-generated content
-        const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
-        const rootMatch = rootRegex.exec(html);
-        const rootContent = rootMatch ? rootMatch[1].trim() : '';
-        
-        if (!rootContent || rootContent.length < 200) {
-          // Extract metadata
-          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-          const title = titleMatch ? titleMatch[1] : 'Page';
-          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-          const description = descMatch ? descMatch[1] : '';
-          const pathname = new URL(pageUrl).pathname;
+        // Solo generar con IA para primeras 3 páginas (timeout estricto)
+        if (i < 3) {
+          const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
+          const rootMatch = rootRegex.exec(html);
+          const rootContent = rootMatch ? rootMatch[1].trim() : '';
           
-          try {
-            // Generate with AI
-            const aiResponse = await base44.integrations.Core.InvokeLLM({
-              prompt: `Genera HTML realista para una página de aplicación titulada "${title}".
-Descripción: "${description}"
-URL: ${pathname}
-Contexto: Es parte de una aplicación SPA tipo Base44.
-
-Retorna SOLO el HTML markup completo para el contenido - sin divs wrapper, sin explicaciones. Incluye estilos inline si es necesario para que se vea bien.`,
-              response_json_schema: {
-                type: 'object',
-                properties: {
-                  html: { type: 'string' }
-                }
+          if (!rootContent || rootContent.length < 150) {
+            try {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 8000);
+              
+              const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+              const title = titleMatch ? titleMatch[1] : 'Page';
+              
+              const aiResponse = await base44.integrations.Core.InvokeLLM({
+                prompt: `HTML para página SPA: "${title}". Solo contenido, sin wrapper.`,
+                response_json_schema: { type: 'object', properties: { html: { type: 'string' } } }
+              });
+              
+              clearTimeout(timeout);
+              
+              if (aiResponse?.html) {
+                html = html.replace(
+                  /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is,
+                  `<div id="root">${aiResponse.html}</div>`
+                );
               }
-            });
-            
-            if (aiResponse?.html) {
-              html = html.replace(
-                /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is,
-                `<div id="root">${aiResponse.html}</div>`
-              );
+            } catch (e) {
+              // Ignorar timeout, continuar sin IA
             }
-          } catch (e) {
-            console.warn(`AI generation failed for ${pageUrl}:`, e.message);
           }
         }
         
