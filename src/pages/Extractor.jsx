@@ -688,9 +688,8 @@ export default function Extractor() {
           </div>
         </div>
         </div>
-        </div>
 
-      {/* Disclaimer */}
+        {/* Disclaimer */}
       <footer className="border-t border-slate-200 mt-4 py-4">
         <p className="text-center text-[11px] text-slate-500 max-w-2xl mx-auto px-4">
           Esta herramienta es para uso educativo y análisis de páginas propias o públicas.
