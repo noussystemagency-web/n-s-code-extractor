@@ -88,9 +88,8 @@ export default function PreviewPanel({ data, screenshotUrl }) {
             <img src={screenshotUrl} alt="Preview" className="w-full h-full object-cover object-top" />
           ) : data?.html ? (
             <iframe
-              srcDoc={`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${data.css?.inline || ''}</style></head><body>${data.html}</body></html>`}
+              srcDoc={`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;padding:0;}${data.css?.inline || ''}</style></head><body>${data.html}</body></html>`}
               className="w-full h-full border-0"
-              sandbox="allow-same-origin"
               title="Vista previa"
             />
           ) : (
