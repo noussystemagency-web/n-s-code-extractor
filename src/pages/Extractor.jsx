@@ -571,7 +571,7 @@ export default function Extractor() {
           <div className="w-px bg-slate-200 flex-shrink-0" />
 
           {/* ── RIGHT PANEL ── takes all remaining space */}
-          <div style={{flex: 1, minWidth: 0, width: '100%', height: '100%', overflowY: 'auto', padding: '16px 24px'}} className="space-y-4">
+          <div style={{flex: 1, minWidth: 0, overflow: 'hidden'}} className="overflow-y-auto px-6 py-4 space-y-4">
             {isCrawling || siteData ? (
               <>
                 {isCrawling && (
