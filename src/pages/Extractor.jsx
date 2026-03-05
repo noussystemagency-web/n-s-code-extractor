@@ -15,7 +15,6 @@ import MetadataBar from '../components/extractor/MetadataBar';
 import PromptModal from '../components/extractor/PromptModal';
 import CodeEditor from '../components/extractor/CodeEditor';
 import AdvancedOptions from '../components/extractor/AdvancedOptions';
-import CloneToBase44Modal from '../components/extractor/CloneToBase44Modal';
 import LivePreview from '../components/extractor/LivePreview';
 import ComponentDetector from '../components/extractor/ComponentDetector';
 import AnalysisPanel from '../components/extractor/AnalysisPanel';
