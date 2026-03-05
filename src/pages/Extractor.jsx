@@ -466,10 +466,10 @@ export default function Extractor() {
       </header>
 
       <div style={{width: '100%', padding: '0'}}>
-        <div style={{display: 'flex', width: '100%', height: 'calc(100vh - 120px)'}}>
+        <div style={{display: 'flex', width: '100%', height: 'calc(100vh - 60px)'}}>
 
           {/* ── LEFT PANEL ── fixed width, scrollable content, fixed bottom buttons */}
-          <div className="flex flex-col bg-white border-r border-slate-200 shadow-sm" style={{width: '380px', minWidth: '380px', flexShrink: 0}}>
+          <div className="flex flex-col bg-white border-r border-slate-200 shadow-sm" style={{width: '420px', minWidth: '420px', flexShrink: 0}}>
             
             {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto">
