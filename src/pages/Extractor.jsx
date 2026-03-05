@@ -599,11 +599,19 @@ export default function Extractor() {
                   />
                 )}
                 {siteData && (
-                  <FullSitePreview
-                    siteData={siteData}
-                    onSendToBase44={handleSendSiteToBase44}
-                    isSending={false}
-                  />
+                  <>
+                    <FullSitePreview
+                      siteData={siteData}
+                      onSendToBase44={handleSendSiteToBase44}
+                      isSending={false}
+                    />
+                    <AICodeManipulation
+                      html={siteData.pages.map(p => p.html).join('\n\n')}
+                      css={siteData.pages.map(p => p.css).filter(Boolean).join('\n\n')}
+                      js=""
+                      onApplyCode={() => {}}
+                    />
+                  </>
                 )}
               </>
             ) : showLivePreview && extractedData ? (
