@@ -15,6 +15,7 @@ import MetadataBar from '../components/extractor/MetadataBar';
 import PromptModal from '../components/extractor/PromptModal';
 import CodeEditor from '../components/extractor/CodeEditor';
 import AdvancedOptions from '../components/extractor/AdvancedOptions';
+import CloneToBase44Modal from '../components/extractor/CloneToBase44Modal';
 import LivePreview from '../components/extractor/LivePreview';
 import ComponentDetector from '../components/extractor/ComponentDetector';
 import AnalysisPanel from '../components/extractor/AnalysisPanel';
@@ -34,6 +35,7 @@ export default function Extractor() {
   const [promptData, setPromptData] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showCloneModal, setShowCloneModal] = useState(false);
   const [showLivePreview, setShowLivePreview] = useState(false);
   const [detectedComponents, setDetectedComponents] = useState([]);
   const [previewDevice, setPreviewDevice] = useState('desktop');
@@ -94,6 +96,7 @@ export default function Extractor() {
     setScreenshotUrl(null);
     toast.info('Extrayendo contenido...');
     
+    // Add notification
     if (window.addNotification) {
       window.addNotification({
         type: 'loading',
@@ -117,6 +120,7 @@ export default function Extractor() {
         setScreenshotUrl(response.data.data?.screenshot_url);
         toast.success('✅ Extracción completada');
         
+        // Add notification
         if (window.addNotification) {
           window.addNotification({
             type: 'success',
@@ -125,6 +129,7 @@ export default function Extractor() {
           });
         }
 
+        // Save project
         if (response.data?.data) {
           const projName = response.data.data?.metadata?.title || new URL(url).hostname;
           await base44.entities.ExtractedProject.create({
@@ -195,6 +200,7 @@ export default function Extractor() {
 
   const handleInsertGeneratedCode = (generatedCode) => {
     if (!extractedData) {
+      // Create new extracted data from generated code
       setExtractedData({
         html: generatedCode.html || '',
         css: { inline: generatedCode.css || '', external: [], links: [] },
@@ -204,6 +210,7 @@ export default function Extractor() {
         metadata: { title: 'Código Generado por IA', framework: 'Generated' },
       });
     } else {
+      // Append to existing extracted data
       setExtractedData({
         ...extractedData,
         html: (extractedData.html || '') + '\n\n' + (generatedCode.html || ''),
@@ -284,11 +291,12 @@ export default function Extractor() {
     try {
       const response = await base44.functions.invoke('crawlWebsite', {
         baseUrl: url,
-        maxPages: 50,
+        maxPages: 20,
         render_spa: options.render_spa,
       });
 
       if (response.data?.success) {
+        // Create progress items
         const pages = response.data.data.pages.map(p => ({
           ...p,
           status: 'completed'
@@ -311,6 +319,7 @@ export default function Extractor() {
     if (!siteData || !siteData.pages.length) return;
 
     try {
+      // Create a mega project with all pages
       const projectName = `${siteData.siteName} - Sitio Completo`;
       const combinedHtml = `<!DOCTYPE html>
 <html>
@@ -416,88 +425,187 @@ export default function Extractor() {
   };
 
   return (
-    <div style={{ width: '100vw', height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'fixed', top: '60px', left: 0 }}>
-
-      {/* ── FILA 1: URL INPUT ── 80px */}
-      <div style={{ height: '80px', flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: '1px solid #e2e8f0', background: '#fff', padding: '0 16px' }}>
-        <div style={{ width: '100%' }}>
-          <UrlInput
-            onSubmit={handleExtract}
-            isLoading={isExtracting}
-            onUrlChange={setCurrentUrl}
-          />
-        </div>
-      </div>
-
-      {/* ── FILA 2: COLUMNA IZQUIERDA + COLUMNA DERECHA ── flex:1 */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-
-        {/* Columna izquierda 320px */}
-        <div style={{ width: '320px', minWidth: '320px', flexShrink: 0, height: '100%', overflowY: 'auto', borderRight: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', gap: 0 }}>
-
-          {/* Modo */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Modo de Extracción</div>
-            <ModeSelector mode={mode} setMode={setMode} />
-          </div>
-
-          {/* Opciones de extracción */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Opciones</div>
-            <ExtractionOptions options={options} setOptions={setOptions} cleanup={cleanup} setCleanup={setCleanup} />
-          </div>
-
-          {/* Botones Extraer y Crawl */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <Button
-              onClick={() => currentUrl && handleExtract(currentUrl)}
-              disabled={!currentUrl || isExtracting || isCrawling}
-              style={{ height: '44px', background: 'linear-gradient(to right, #2563eb, #4f46e5)', color: '#fff', fontWeight: 600, borderRadius: '10px', border: 'none', cursor: 'pointer' }}
-            >
-              {isExtracting ? <><Loader2 style={{ width: 16, height: 16, marginRight: 6, animation: 'spin 1s linear infinite' }} />Extrayendo</> : <><Zap style={{ width: 16, height: 16, marginRight: 6 }} />Extraer</>}
-            </Button>
-            <Button
-              onClick={() => currentUrl && handleCrawlWebsite(currentUrl)}
-              disabled={!currentUrl || isCrawling || isExtracting}
-              style={{ height: '44px', background: 'linear-gradient(to right, #059669, #0d9488)', color: '#fff', fontWeight: 600, borderRadius: '10px', border: 'none', cursor: 'pointer' }}
-            >
-              {isCrawling ? <><Loader2 style={{ width: 16, height: 16, marginRight: 6, animation: 'spin 1s linear infinite' }} />Crawling</> : '🕷️ Crawl'}
-            </Button>
-          </div>
-
-        </div>
-
-        {/* Columna derecha flex:1 */}
-        <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-
-          {/* ActionBar */}
-          {extractedData && (
-            <div style={{ flexShrink: 0, padding: '8px 12px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-              <ActionBar
-                data={extractedData}
-                onGeneratePrompt={handleGeneratePrompt}
-
-                isGenerating={isGenerating}
-              />
-              <Button onClick={() => setShowEditor(true)} variant="outline" size="sm" style={{ fontSize: '12px', height: '32px' }}>
-                <Code2 style={{ width: 13, height: 13, marginRight: 4 }} />Editar Código
-              </Button>
-              <Button onClick={() => setShowLivePreview(!showLivePreview)} variant="outline" size="sm" style={{ fontSize: '12px', height: '32px' }}>
-                {showLivePreview ? 'Ver Código' : 'Vista Previa Viva'}
-              </Button>
-              <Button onClick={handleOptimizeCode} disabled={isOptimizing} variant="outline" size="sm" style={{ fontSize: '12px', height: '32px', borderColor: '#a5b4fc', color: '#4f46e5' }}>
-                {isOptimizing ? <><Loader2 style={{ width: 13, height: 13, marginRight: 4, animation: 'spin 1s linear infinite' }} />Optimizando...</> : 'Optimizar'}
-              </Button>
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+              <Crosshair className="w-4.5 h-4.5 text-white" />
             </div>
-          )}
-
-          {/* PreviewPanel / Live / Crawl */}
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-            {isCrawling || siteData ? (
-              <div style={{ height: '100%', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {isCrawling && <SiteExtractionProgress pages={crawlProgress} isComplete={false} />}
-                {siteData && <FullSitePreview siteData={siteData} onSendToBase44={handleSendSiteToBase44} isSending={false} />}
+            <div>
+              <h1 className="text-sm font-bold tracking-tight text-slate-900">
+                NØÜS <span className="text-blue-600">Code Extractor</span>
+              </h1>
+              <p className="text-[10px] text-slate-500 -mt-0.5">Web Cloner & Analyzer</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {extractedData?.metadata && <MetadataBar metadata={extractedData.metadata} />}
+            {stats.total > 0 && (
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+                  <span className="text-slate-600 font-medium">Total:</span>
+                  <span className="font-bold text-slate-900">{stats.total}</span>
+                </div>
+                {stats.completed > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 border border-green-200">
+                    <span className="text-green-600">✓</span>
+                    <span className="font-bold text-green-700">{stats.completed}</span>
+                  </div>
+                )}
+                {stats.extracting > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200">
+                    <span className="text-blue-600">⟳</span>
+                    <span className="font-bold text-blue-700">{stats.extracting}</span>
+                  </div>
+                )}
+                {stats.error > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200">
+                    <span className="text-red-600">✕</span>
+                    <span className="font-bold text-red-700">{stats.error}</span>
+                  </div>
+                )}
               </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+          {/* Left Panel - Controls */}
+          <div className="space-y-5 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
+            <ModeSelector mode={mode} setMode={setMode} />
+            
+            <div className="space-y-2 bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
+              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={options.render_spa}
+                  onChange={(e) => setOptions({...options, render_spa: e.target.checked})}
+                  className="w-4 h-4 rounded border-slate-300 bg-white text-amber-600 focus:ring-amber-500"
+                />
+                <div>
+                  <div className="text-sm text-slate-700 font-medium">Renderizar JavaScript (SPAs)</div>
+                  <div className="text-[11px] text-slate-500">Ejecuta JS antes de extraer</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={useAdvancedExtraction}
+                  onChange={(e) => setUseAdvancedExtraction(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <div className="text-sm text-slate-700 font-medium">Extracción Avanzada</div>
+                  <div className="text-[11px] text-slate-500">Navegador headless + más opciones</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={useEnhancedComponentDetection}
+                  onChange={(e) => setUseEnhancedComponentDetection(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500"
+                />
+                <div>
+                  <div className="text-sm text-slate-700 font-medium">Detección Mejorada</div>
+                  <div className="text-[11px] text-slate-500">Análisis profundo de componentes</div>
+                </div>
+              </label>
+            </div>
+
+            <UrlInput 
+              onSubmit={handleExtract} 
+              isLoading={isExtracting}
+              onUrlChange={setCurrentUrl}
+            />
+            <ExtractionOptions
+              options={options}
+              setOptions={setOptions}
+              cleanup={cleanup}
+              setCleanup={setCleanup}
+            />
+            <AdvancedOptions
+              options={optimizationOptions}
+              setOptions={setOptimizationOptions}
+            />
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => currentUrl && handleExtract(currentUrl)}
+                  disabled={!currentUrl || isExtracting || isCrawling}
+                  className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
+                >
+                  {isExtracting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Extrayendo
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Extraer
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => currentUrl && handleCrawlWebsite(currentUrl)}
+                  disabled={!currentUrl || isCrawling || isExtracting}
+                  className="h-11 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition-all"
+                >
+                  {isCrawling ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Crawling
+                    </>
+                  ) : (
+                    <>
+                      🕷️
+                    </>
+                  )}
+                </Button>
+              </div>
+              {extractedData && (
+                <Button
+                  onClick={handleOptimizeCode}
+                  disabled={isOptimizing}
+                  variant="outline"
+                  className="w-full h-10 bg-white border-indigo-300 text-indigo-600 hover:bg-indigo-50"
+                >
+                  {isOptimizing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                      Optimizando...
+                    </>
+                  ) : (
+                    'Optimizar Código'
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Right Panel - Preview & Code */}
+          <div className="space-y-4">
+            {isCrawling || siteData ? (
+              <>
+                {isCrawling && (
+                  <SiteExtractionProgress
+                    pages={crawlProgress}
+                    isComplete={false}
+                  />
+                )}
+                {siteData && (
+                  <FullSitePreview
+                    siteData={siteData}
+                    onSendToBase44={handleSendSiteToBase44}
+                    isSending={false}
+                  />
+                )}
+              </>
             ) : showLivePreview && extractedData ? (
               <LivePreview
                 html={extractedData.html}
@@ -508,29 +616,107 @@ export default function Extractor() {
             ) : (
               <PreviewPanel data={extractedData} screenshotUrl={screenshotUrl} />
             )}
+            
+            <div className="flex flex-wrap gap-2">
+              <ActionBar
+                data={extractedData}
+                onGeneratePrompt={handleGeneratePrompt}
+                onCloneToBase44={() => setShowCloneModal(true)}
+                isGenerating={isGenerating}
+              />
+              {extractedData && (
+                <>
+                  <Button
+                    onClick={() => setShowEditor(true)}
+                    variant="outline"
+                    size="sm"
+                    className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 text-xs h-9"
+                  >
+                    <Code2 className="w-3.5 h-3.5 mr-1.5" />
+                    Editar Código
+                  </Button>
+                  <Button
+                    onClick={() => setShowLivePreview(!showLivePreview)}
+                    variant="outline"
+                    size="sm"
+                    className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 text-xs h-9"
+                  >
+                    {showLivePreview ? 'Ver Código' : 'Vista Previa Viva'}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Additional Panels */}
+            {extractedData && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <ComponentDetector 
+                  components={detectedComponents}
+                  onSaveComponent={() => queryClient.invalidateQueries({ queryKey: ['components'] })}
+                />
+                <ReactConverter 
+                  html={extractedData.html}
+                  css={extractedData.css?.inline}
+                />
+              </div>
+            )}
+
+            {extractedData && (
+              <AnalysisPanel extractedData={extractedData} />
+            )}
+
+            {/* AI Code Generator */}
+            <AICodeGenerator onInsertCode={handleInsertGeneratedCode} />
+
+            {/* AI Code Manipulation */}
+            {extractedData && (
+              <AICodeManipulation
+                html={extractedData.html}
+                css={extractedData.css?.inline}
+                js={(extractedData.js?.inline || []).join('\n')}
+                onApplyCode={(code) => {
+                  setExtractedData({
+                    ...extractedData,
+                    html: code.html || extractedData.html,
+                    css: { ...extractedData.css, inline: code.css || extractedData.css?.inline },
+                    js: { ...extractedData.js, inline: code.js ? [code.js] : extractedData.js?.inline },
+                  });
+                  toast.success('Código aplicado exitosamente');
+                }}
+              />
+            )}
           </div>
-
         </div>
-      </div>
 
-      {/* ── FILA 3: AI TOOLS ── 60px */}
-      <div style={{ height: '60px', flexShrink: 0, display: 'flex', flexWrap: 'wrap', overflow: 'hidden', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
-        <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden', borderRight: '1px solid #e2e8f0' }}>
-          <AICodeGenerator onInsertCode={handleInsertGeneratedCode} compact />
-        </div>
-        <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
-          <AICodeManipulation
-            html={extractedData?.html || ''}
-            css={extractedData?.css?.inline || ''}
-            js={(extractedData?.js?.inline || []).join('\n')}
-            onApplyChanges={(updated) => setExtractedData(prev => ({ ...prev, ...updated }))}
-            compact
+        {/* Recent Projects */}
+        <div className="mt-8">
+          <RecentProjects
+            projects={projects}
+            onSelect={handleSelectProject}
+            onDelete={handleDeleteProject}
           />
         </div>
       </div>
 
-      {/* Modales */}
-      <PromptModal open={showPrompt} onOpenChange={setShowPrompt} promptData={promptData} />
+      {/* Disclaimer */}
+      <footer className="border-t border-slate-200 mt-12 py-4">
+        <p className="text-center text-[11px] text-slate-500 max-w-2xl mx-auto px-4">
+          Esta herramienta es para uso educativo y análisis de páginas propias o públicas.
+          Respeta copyright y términos de servicio. NØÜS SYSTEM no se responsabiliza del uso indebido.
+        </p>
+      </footer>
+
+      <PromptModal
+        open={showPrompt}
+        onOpenChange={setShowPrompt}
+        promptData={promptData}
+      />
+
+      <CloneToBase44Modal
+        open={showCloneModal}
+        onOpenChange={setShowCloneModal}
+        data={extractedData}
+      />
 
       {showEditor && (
         <CodeEditor

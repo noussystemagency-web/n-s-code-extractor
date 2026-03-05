@@ -50,9 +50,9 @@ export default function PreviewPanel({ data, screenshotUrl }) {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="h-full flex flex-col">
       {/* Preview Zone */}
-      <div className="relative bg-white border-b border-slate-200 flex-shrink-0" style={{ height: '45%', minHeight: '200px' }}>
+      <div className="relative bg-white rounded-xl border border-slate-200 overflow-hidden mb-4 shadow-sm">
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
@@ -83,27 +83,26 @@ export default function PreviewPanel({ data, screenshotUrl }) {
             ))}
           </div>
         </div>
-        <div className="flex items-center justify-center overflow-hidden bg-slate-50" style={{ height: 'calc(100% - 45px)' }}>
-          {screenshotUrl && screenshotUrl.startsWith('http') ? (
+        <div className="h-48 flex items-center justify-center overflow-hidden bg-slate-50">
+          {screenshotUrl ? (
             <img src={screenshotUrl} alt="Preview" className="w-full h-full object-cover object-top" />
           ) : data?.html ? (
-            <iframe
-              srcDoc={`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${data.css?.inline || ''}</style></head><body>${data.html}</body></html>`}
-              className="w-full h-full border-0"
-              title="Vista previa"
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-slate-400">
-              <Monitor className="w-10 h-10" />
-              <span className="text-sm">Ingresa una URL para comenzar</span>
+            <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">
+              <div className="text-center">
+                <Monitor className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                <p className="text-slate-700">Página cargada</p>
+                <p className="text-xs text-slate-500 mt-1">{data?.metadata?.framework || 'HTML'} • {data?.metadata?.total_size}</p>
+              </div>
             </div>
+          ) : (
+            <div className="text-slate-500 text-sm">Ingresa una URL para comenzar</div>
           )}
         </div>
       </div>
 
       {/* Code Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '12px' }}>
-        <TabsList className="bg-white border border-slate-200 rounded-lg p-1 h-auto flex-wrap justify-start shadow-sm flex-shrink-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+        <TabsList className="bg-white border border-slate-200 rounded-lg p-1 h-auto flex-wrap justify-start shadow-sm">
           {TABS.map(tab => (
             <TabsTrigger
               key={tab.id}
@@ -116,21 +115,21 @@ export default function PreviewPanel({ data, screenshotUrl }) {
           ))}
         </TabsList>
 
-        <div className="flex-1 mt-3 min-h-0 overflow-hidden">
+        <div className="flex-1 mt-3 min-h-0">
           <TabsContent value="html" className="m-0 h-full">
-            <CodeViewer code={data?.html} language="html" maxHeight="100%" />
+            <CodeViewer code={data?.html} language="html" maxHeight="350px" />
           </TabsContent>
           <TabsContent value="css" className="m-0 h-full">
-            <CodeViewer code={getCSS()} language="css" maxHeight="100%" />
+            <CodeViewer code={getCSS()} language="css" maxHeight="350px" />
           </TabsContent>
           <TabsContent value="js" className="m-0 h-full">
-            <CodeViewer code={getJS()} language="javascript" maxHeight="100%" />
+            <CodeViewer code={getJS()} language="javascript" maxHeight="350px" />
           </TabsContent>
           <TabsContent value="structure" className="m-0 h-full">
             <StructureTree structure={data?.structure} />
           </TabsContent>
           <TabsContent value="json" className="m-0 h-full">
-            <CodeViewer code={getJSON()} language="json" maxHeight="100%" />
+            <CodeViewer code={getJSON()} language="json" maxHeight="350px" />
           </TabsContent>
           <TabsContent value="assets" className="m-0 h-full">
             <AssetsPanel assets={data?.assets} />

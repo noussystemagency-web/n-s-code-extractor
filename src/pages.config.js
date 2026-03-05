@@ -60,7 +60,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "ComponentLibrary",
+    mainPage: "Extractor",
     Pages: PAGES,
     Layout: __Layout,
 };
