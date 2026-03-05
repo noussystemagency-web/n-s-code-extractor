@@ -34,7 +34,6 @@ export default function Extractor() {
   const [promptData, setPromptData] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
-  const [showCloneModal, setShowCloneModal] = useState(false);
   const [showLivePreview, setShowLivePreview] = useState(false);
   const [detectedComponents, setDetectedComponents] = useState([]);
   const [previewDevice, setPreviewDevice] = useState('desktop');
