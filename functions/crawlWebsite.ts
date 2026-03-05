@@ -126,8 +126,17 @@ Deno.serve(async (req) => {
       const { html, links } = await fetchAndExtractLinks(url);
       if (html) htmlCache.set(url, html);
 
+      // Extract routes from JS if it's an SPA
+      const jsRoutes = extractRoutesFromJS(html);
+      for (const route of jsRoutes) {
+        const fullUrl = baseUrlObj.origin + route;
+        if (!visited.has(fullUrl) && !queue.includes(fullUrl) && visited.size < maxPages) {
+          queue.push(fullUrl);
+        }
+      }
+
       for (const link of links) {
-        if (!visited.has(link) && !queue.includes(link)) {
+        if (!visited.has(link) && !queue.includes(link) && visited.size < maxPages) {
           queue.push(link);
         }
       }
@@ -138,6 +147,37 @@ Deno.serve(async (req) => {
     for (const url of sitemapUrls) {
       if (!visited.has(url) && visited.size < maxPages) {
         visited.add(url);
+      }
+    }
+    
+    // For SPAs, generate missing pages with AI if we found less than 10 pages
+    if (visited.size < 10 && baseUrlObj.hostname.includes('base44')) {
+      try {
+        const aiResponse = await base44.integrations.Core.InvokeLLM({
+          prompt: `Este es un sitio Base44 SPA. Genera una lista de rutas comunes que podría tener basándose en el contexto.
+          Base URL: ${baseUrl}
+          Páginas encontradas: ${Array.from(visited).join(', ')}
+          
+          Retorna una lista de 15-20 rutas adicionales probables (ej: /dashboard, /settings, /profile, etc) en formato JSON array.`,
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              routes: { type: 'array', items: { type: 'string' } }
+            }
+          }
+        });
+        
+        if (aiResponse?.routes && Array.isArray(aiResponse.routes)) {
+          for (const route of aiResponse.routes) {
+            const fullUrl = baseUrlObj.origin + route;
+            if (!visited.has(fullUrl) && visited.size < maxPages) {
+              visited.add(fullUrl);
+              queue.push(fullUrl);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('AI route generation failed:', e.message);
       }
     }
 
