@@ -107,35 +107,38 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Discovery phase: collect all URLs first using sitemap + BFS
-    const allDiscoveredPages = new Set();
-    // Cache HTML to avoid re-fetching pages we already visited during BFS
+    // Cache HTML to avoid re-fetching
     const htmlCache = new Map();
 
-    // 1. Try sitemap first (most reliable, fast)
-    const sitemapUrls = await fetchSitemap();
-    for (const url of sitemapUrls) {
-      allDiscoveredPages.add(url);
-    }
+    // BFS: start from baseUrl, follow all internal <a href> links recursively until maxPages reached
+    const visited = new Set();
+    const queue = [baseUrl];
 
-    // 2. BFS from main page - traverse all internal links up to maxPages * 3 to discover enough
-    const bfsVisited = new Set();
-    let queue = [baseUrl];
-    while (queue.length > 0 && allDiscoveredPages.size < maxPages * 3) {
+    while (queue.length > 0 && visited.size < maxPages) {
       const url = queue.shift();
-      if (bfsVisited.has(url)) continue;
-      bfsVisited.add(url);
-      allDiscoveredPages.add(url);
+      if (visited.has(url)) continue;
+      visited.add(url);
 
       const { html, links } = await fetchAndExtractLinks(url);
       if (html) htmlCache.set(url, html);
+
       for (const link of links) {
-        if (!bfsVisited.has(link) && !queue.includes(link)) queue.push(link);
+        if (!visited.has(link) && !queue.includes(link)) {
+          queue.push(link);
+        }
       }
     }
 
-    // Extraction phase - take up to maxPages from all discovered
-    const pages = Array.from(allDiscoveredPages).slice(0, maxPages);
+    // Also try sitemap for any pages not found by BFS
+    const sitemapUrls = await fetchSitemap();
+    for (const url of sitemapUrls) {
+      if (!visited.has(url) && visited.size < maxPages) {
+        visited.add(url);
+      }
+    }
+
+    // Extraction phase - all discovered pages
+    const pages = Array.from(visited).slice(0, maxPages);
     
     for (let i = 0; i < pages.length; i++) {
       const pageUrl = pages[i];
