@@ -80,15 +80,7 @@ ${data.html || ''}
         {isGenerating ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FileText className="w-3.5 h-3.5 mr-1.5" />}
         Generar Prompt
       </Button>
-      <Button
-        disabled={!data}
-        size="sm"
-        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs h-9"
-        onClick={onCloneToBase44}
-      >
-        <Rocket className="w-3.5 h-3.5 mr-1.5" />
-        Clonar a Base44
-      </Button>
+
     </div>
   );
 }
