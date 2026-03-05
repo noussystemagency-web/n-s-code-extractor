@@ -570,8 +570,8 @@ export default function Extractor() {
           {/* Divider */}
           <div className="w-px bg-slate-200 flex-shrink-0" />
 
-          {/* Right Panel - Preview & Code */}
-          <div className="space-y-4">
+          {/* ── RIGHT PANEL ── takes all remaining space */}
+          <div className="flex-1 min-w-0 overflow-y-auto px-5 py-4 space-y-4">
             {isCrawling || siteData ? (
               <>
                 {isCrawling && (
