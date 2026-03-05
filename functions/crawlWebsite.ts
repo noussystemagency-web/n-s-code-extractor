@@ -28,7 +28,6 @@ Deno.serve(async (req) => {
         /<Route path=["']([^"']+)["']/g,
         /href=["']\/([^"'\/][^"']*?)["']/g,
         /"pathname":\s*["']([^"']+)["']/g,
-        /\?id=([^&\s"']+)/g,  // Captura parámetros de URL
         /\/([a-zA-Z0-9_-]+)/g,  // Rutas dinámicas comunes
       ];
       
