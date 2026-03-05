@@ -49,12 +49,14 @@
  */
 import ComponentLibrary from './pages/ComponentLibrary';
 import ProjectHistory from './pages/ProjectHistory';
+import Extractor from './pages/Extractor';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "ComponentLibrary": ComponentLibrary,
     "ProjectHistory": ProjectHistory,
+    "Extractor": Extractor,
 }
 
 export const pagesConfig = {
