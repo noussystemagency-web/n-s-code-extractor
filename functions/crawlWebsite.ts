@@ -107,29 +107,30 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Discovery phase: collect all URLs first, then limit
+    // Discovery phase: collect all URLs first using sitemap + BFS
     const allDiscoveredPages = new Set();
+    // Cache HTML to avoid re-fetching pages we already visited during BFS
+    const htmlCache = new Map();
 
-    // 1. Try sitemap first (most reliable source)
+    // 1. Try sitemap first (most reliable, fast)
     const sitemapUrls = await fetchSitemap();
     for (const url of sitemapUrls) {
       allDiscoveredPages.add(url);
     }
 
-    // 2. BFS from main page - discover without limit first
+    // 2. BFS from main page
     const bfsVisited = new Set();
     let queue = [baseUrl];
-    while (queue.length > 0 && bfsVisited.size < 100) {
+    while (queue.length > 0 && bfsVisited.size < maxPages * 2) {
       const url = queue.shift();
       if (bfsVisited.has(url)) continue;
       bfsVisited.add(url);
       allDiscoveredPages.add(url);
 
-      const newLinks = await fetchAndExtractLinks(url);
-      for (const link of newLinks) {
-        if (!bfsVisited.has(link)) {
-          queue.push(link);
-        }
+      const { html, links } = await fetchAndExtractLinks(url);
+      if (html) htmlCache.set(url, html);
+      for (const link of links) {
+        if (!bfsVisited.has(link)) queue.push(link);
       }
     }
 
@@ -140,16 +141,19 @@ Deno.serve(async (req) => {
       const pageUrl = pages[i];
       
       try {
-        // Fetch page
-        const response = await fetch(pageUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          }
-        });
-        
-        if (!response.ok) continue;
-        
-        let html = await response.text();
+        // Use cached HTML if available, otherwise fetch
+        let html = htmlCache.get(pageUrl);
+        if (!html) {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+          const response = await fetch(pageUrl, {
+            signal: controller.signal,
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+          });
+          clearTimeout(timeout);
+          if (!response.ok) continue;
+          html = await response.text();
+        }
         
         // If render_spa enabled and root is empty, generate with AI
         if (render_spa) {
