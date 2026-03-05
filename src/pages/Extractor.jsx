@@ -418,249 +418,122 @@ export default function Extractor() {
   };
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden'}}>
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl z-40 flex-shrink-0">
-        <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-              <Crosshair className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold tracking-tight text-slate-900">
-                NØÜS <span className="text-blue-600">Code Extractor</span>
-              </h1>
-              <p className="text-[10px] text-slate-500 -mt-0.5">Web Cloner & Analyzer</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {extractedData?.metadata && <MetadataBar metadata={extractedData.metadata} />}
-            {stats.total > 0 && (
-              <div className="flex items-center gap-2 text-xs">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-                  <span className="text-slate-600 font-medium">Total:</span>
-                  <span className="font-bold text-slate-900">{stats.total}</span>
-                </div>
-                {stats.completed > 0 && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 border border-green-200">
-                    <span className="text-green-600">✓</span>
-                    <span className="font-bold text-green-700">{stats.completed}</span>
-                  </div>
-                )}
-                {stats.error > 0 && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200">
-                    <span className="text-red-600">✕</span>
-                    <span className="font-bold text-red-700">{stats.error}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+    <div style={{ width: '100vw', height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'fixed', top: '60px', left: 0 }}>
+
+      {/* ── FILA 1: URL INPUT ── 80px */}
+      <div style={{ height: '80px', flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: '1px solid #e2e8f0', background: '#fff', padding: '0 16px' }}>
+        <div style={{ width: '100%' }}>
+          <UrlInput
+            onSubmit={handleExtract}
+            isLoading={isExtracting}
+            onUrlChange={setCurrentUrl}
+          />
         </div>
-      </header>
+      </div>
 
-      {/* ── MAIN TWO-COLUMN LAYOUT ── */}
-      <div style={{display: 'flex', flex: 1, overflow: 'hidden', width: '100%'}}>
+      {/* ── FILA 2: COLUMNA IZQUIERDA + COLUMNA DERECHA ── flex:1 */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
 
-        {/* ── LEFT PANEL ── 380px fixed, scrollable */}
-        <div className="flex flex-col bg-white border-r border-slate-200 shadow-sm" style={{width: '380px', minWidth: '380px', flexShrink: 0, height: '100%'}}>
-          
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto">
-            {/* URL Input */}
-            <div className="px-4 pt-4 pb-3">
-              <UrlInput 
-                onSubmit={handleExtract} 
-                isLoading={isExtracting}
-                onUrlChange={setCurrentUrl}
-              />
-            </div>
+        {/* Columna izquierda 320px */}
+        <div style={{ width: '320px', minWidth: '320px', flexShrink: 0, height: '100%', overflowY: 'auto', borderRight: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-            <div className="border-t border-slate-100" />
-
-            {/* Modo de Extracción */}
-            <div className="px-4 py-3">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Modo de Extracción</span>
-                <div className="flex-1 h-px bg-slate-200" />
-              </div>
-              <ModeSelector mode={mode} setMode={setMode} />
-            </div>
-
-            <div className="border-t border-slate-100" />
-
-            {/* Opciones Avanzadas */}
-            <div className="px-4 py-3">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Opciones Avanzadas</span>
-                <div className="flex-1 h-px bg-slate-200" />
-              </div>
-              <div className="space-y-1">
-                <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                  <input type="checkbox" checked={options.render_spa} onChange={(e) => setOptions({...options, render_spa: e.target.checked})} className="w-4 h-4 rounded border-slate-300 bg-white text-amber-600 focus:ring-amber-500" />
-                  <div>
-                    <div className="text-xs text-slate-700 font-medium">Renderizar JavaScript (SPAs)</div>
-                    <div className="text-[10px] text-slate-500">Ejecuta JS antes de extraer</div>
-                  </div>
-                </label>
-                <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                  <input type="checkbox" checked={useAdvancedExtraction} onChange={(e) => setUseAdvancedExtraction(e.target.checked)} className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500" />
-                  <div>
-                    <div className="text-xs text-slate-700 font-medium">Extracción Avanzada</div>
-                    <div className="text-[10px] text-slate-500">Navegador headless + más opciones</div>
-                  </div>
-                </label>
-                <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                  <input type="checkbox" checked={useEnhancedComponentDetection} onChange={(e) => setUseEnhancedComponentDetection(e.target.checked)} className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500" />
-                  <div>
-                    <div className="text-xs text-slate-700 font-medium">Detección Mejorada</div>
-                    <div className="text-[10px] text-slate-500">Análisis profundo de componentes</div>
-                  </div>
-                </label>
-              </div>
-              <div className="mt-3">
-                <ExtractionOptions options={options} setOptions={setOptions} cleanup={cleanup} setCleanup={setCleanup} />
-              </div>
-            </div>
-
-            <div className="border-t border-slate-100" />
-
-            {/* Optimización */}
-            <div className="px-4 py-3">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Optimización</span>
-                <div className="flex-1 h-px bg-slate-200" />
-              </div>
-              <AdvancedOptions options={optimizationOptions} setOptions={setOptimizationOptions} />
-            </div>
-
-            <div className="border-t border-slate-100" />
-
-            {/* Acciones sobre el código extraído */}
-            {extractedData && (
-              <div className="px-4 py-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acciones</span>
-                  <div className="flex-1 h-px bg-slate-200" />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <ActionBar
-                    data={extractedData}
-                    onGeneratePrompt={handleGeneratePrompt}
-                    onCloneToBase44={() => setShowCloneModal(true)}
-                    isGenerating={isGenerating}
-                  />
-                  <Button
-                    onClick={() => setShowEditor(true)}
-                    variant="outline"
-                    size="sm"
-                    className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 text-xs h-9"
-                  >
-                    <Code2 className="w-3.5 h-3.5 mr-1.5" />
-                    Editar Código
-                  </Button>
-                  <Button
-                    onClick={() => setShowLivePreview(!showLivePreview)}
-                    variant="outline"
-                    size="sm"
-                    className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 text-xs h-9"
-                  >
-                    {showLivePreview ? 'Ver Código' : 'Vista Previa Viva'}
-                  </Button>
-                  <Button onClick={handleOptimizeCode} disabled={isOptimizing} variant="outline" size="sm" className="bg-white border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-xs h-9">
-                    {isOptimizing ? (<><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Optimizando...</>) : 'Optimizar'}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="border-t border-slate-100" />
-
-            {/* Generador IA */}
-            <div className="px-4 py-3">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Generador IA</span>
-                <div className="flex-1 h-px bg-slate-200" />
-              </div>
-              <AICodeGenerator onInsertCode={handleInsertGeneratedCode} />
-            </div>
-
-            <div className="border-t border-slate-100" />
-
-            {/* Proyectos recientes */}
-            <div className="px-4 py-3">
-              <RecentProjects
-                projects={projects}
-                onSelect={handleSelectProject}
-                onDelete={handleDeleteProject}
-              />
-            </div>
+          {/* Modo */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Modo de Extracción</div>
+            <ModeSelector mode={mode} setMode={setMode} />
           </div>
 
-          {/* ── FIXED BOTTOM BUTTONS ── */}
-          <div className="border-t border-slate-200 bg-white px-4 py-3 flex-shrink-0">
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                onClick={() => currentUrl && handleExtract(currentUrl)}
-                disabled={!currentUrl || isExtracting || isCrawling}
-                className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
-              >
-                {isExtracting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Extrayendo</>) : (<><Zap className="w-4 h-4 mr-2" />Extraer</>)}
-              </Button>
-              <Button
-                onClick={() => currentUrl && handleCrawlWebsite(currentUrl)}
-                disabled={!currentUrl || isCrawling || isExtracting}
-                className="h-11 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition-all"
-              >
-                {isCrawling ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Crawling</>) : '🕷️ Crawl'}
-              </Button>
-            </div>
+          {/* Opciones de extracción */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Opciones</div>
+            <ExtractionOptions options={options} setOptions={setOptions} cleanup={cleanup} setCleanup={setCleanup} />
           </div>
+
+          {/* Botones Extraer y Crawl */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <Button
+              onClick={() => currentUrl && handleExtract(currentUrl)}
+              disabled={!currentUrl || isExtracting || isCrawling}
+              style={{ height: '44px', background: 'linear-gradient(to right, #2563eb, #4f46e5)', color: '#fff', fontWeight: 600, borderRadius: '10px', border: 'none', cursor: 'pointer' }}
+            >
+              {isExtracting ? <><Loader2 style={{ width: 16, height: 16, marginRight: 6, animation: 'spin 1s linear infinite' }} />Extrayendo</> : <><Zap style={{ width: 16, height: 16, marginRight: 6 }} />Extraer</>}
+            </Button>
+            <Button
+              onClick={() => currentUrl && handleCrawlWebsite(currentUrl)}
+              disabled={!currentUrl || isCrawling || isExtracting}
+              style={{ height: '44px', background: 'linear-gradient(to right, #059669, #0d9488)', color: '#fff', fontWeight: 600, borderRadius: '10px', border: 'none', cursor: 'pointer' }}
+            >
+              {isCrawling ? <><Loader2 style={{ width: 16, height: 16, marginRight: 6, animation: 'spin 1s linear infinite' }} />Crawling</> : '🕷️ Crawl'}
+            </Button>
+          </div>
+
         </div>
 
-        {/* ── RIGHT PANEL ── flex:1, solo vista previa */}
-        <div style={{flex: 1, minWidth: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
-          {isCrawling || siteData ? (
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {isCrawling && (
-                <SiteExtractionProgress pages={crawlProgress} isComplete={false} />
-              )}
-              {siteData && (
-                <FullSitePreview
-                  siteData={siteData}
-                  onSendToBase44={handleSendSiteToBase44}
-                  isSending={false}
-                />
-              )}
+        {/* Columna derecha flex:1 */}
+        <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+          {/* ActionBar */}
+          {extractedData && (
+            <div style={{ flexShrink: 0, padding: '8px 12px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+              <ActionBar
+                data={extractedData}
+                onGeneratePrompt={handleGeneratePrompt}
+                onCloneToBase44={() => setShowCloneModal(true)}
+                isGenerating={isGenerating}
+              />
+              <Button onClick={() => setShowEditor(true)} variant="outline" size="sm" style={{ fontSize: '12px', height: '32px' }}>
+                <Code2 style={{ width: 13, height: 13, marginRight: 4 }} />Editar Código
+              </Button>
+              <Button onClick={() => setShowLivePreview(!showLivePreview)} variant="outline" size="sm" style={{ fontSize: '12px', height: '32px' }}>
+                {showLivePreview ? 'Ver Código' : 'Vista Previa Viva'}
+              </Button>
+              <Button onClick={handleOptimizeCode} disabled={isOptimizing} variant="outline" size="sm" style={{ fontSize: '12px', height: '32px', borderColor: '#a5b4fc', color: '#4f46e5' }}>
+                {isOptimizing ? <><Loader2 style={{ width: 13, height: 13, marginRight: 4, animation: 'spin 1s linear infinite' }} />Optimizando...</> : 'Optimizar'}
+              </Button>
             </div>
-          ) : showLivePreview && extractedData ? (
-            <div style={{flex: 1, overflow: 'hidden'}}>
+          )}
+
+          {/* PreviewPanel / Live / Crawl */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            {isCrawling || siteData ? (
+              <div style={{ height: '100%', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {isCrawling && <SiteExtractionProgress pages={crawlProgress} isComplete={false} />}
+                {siteData && <FullSitePreview siteData={siteData} onSendToBase44={handleSendSiteToBase44} isSending={false} />}
+              </div>
+            ) : showLivePreview && extractedData ? (
               <LivePreview
                 html={extractedData.html}
                 css={extractedData.css?.inline}
                 js={(extractedData.js?.inline || []).join('\n')}
                 device={previewDevice}
               />
-            </div>
-          ) : (
-            <div style={{flex: 1, overflow: 'hidden', height: '100%'}}>
+            ) : (
               <PreviewPanel data={extractedData} screenshotUrl={screenshotUrl} />
-            </div>
-          )}
+            )}
+          </div>
+
         </div>
       </div>
 
-      <PromptModal
-        open={showPrompt}
-        onOpenChange={setShowPrompt}
-        promptData={promptData}
-      />
+      {/* ── FILA 3: AI TOOLS ── 60px */}
+      <div style={{ height: '60px', flexShrink: 0, display: 'flex', flexWrap: 'wrap', overflow: 'hidden', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+        <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden', borderRight: '1px solid #e2e8f0' }}>
+          <AICodeGenerator onInsertCode={handleInsertGeneratedCode} compact />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
+          <AICodeManipulation
+            html={extractedData?.html || ''}
+            css={extractedData?.css?.inline || ''}
+            js={(extractedData?.js?.inline || []).join('\n')}
+            onApplyChanges={(updated) => setExtractedData(prev => ({ ...prev, ...updated }))}
+            compact
+          />
+        </div>
+      </div>
 
-      <CloneToBase44Modal
-        open={showCloneModal}
-        onOpenChange={setShowCloneModal}
-        data={extractedData}
-      />
+      {/* Modales */}
+      <PromptModal open={showPrompt} onOpenChange={setShowPrompt} promptData={promptData} />
+      <CloneToBase44Modal open={showCloneModal} onOpenChange={setShowCloneModal} data={extractedData} />
 
       {showEditor && (
         <CodeEditor
