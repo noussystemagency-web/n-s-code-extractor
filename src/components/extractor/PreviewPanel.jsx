@@ -74,7 +74,7 @@ export default function PreviewPanel({ data, screenshotUrl }) {
       </div>
 
       {/* Code Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} style={{flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '12px'}}>
         <TabsList className="bg-white border border-slate-200 rounded-lg p-1 h-auto flex-wrap justify-start shadow-sm">
           {TABS.map(tab => (
             <TabsTrigger
