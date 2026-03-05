@@ -69,7 +69,7 @@ export default function FullSitePreview({ siteData, onSendToBase44, isSending })
       {/* Pages Navigation */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Páginas Extraídas</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-64 overflow-y-auto">
           {siteData.pages.map((page, idx) => (
             <button
               key={page.url}
