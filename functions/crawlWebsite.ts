@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { baseUrl, maxPages = 30, render_spa = false } = await req.json();
+    const { baseUrl, maxPages = 50, render_spa = false } = await req.json();
 
     if (!baseUrl) {
       return Response.json({ error: 'Base URL is required' }, { status: 400 });
@@ -118,10 +118,10 @@ Deno.serve(async (req) => {
       allDiscoveredPages.add(url);
     }
 
-    // 2. BFS from main page
+    // 2. BFS from main page - traverse all internal links up to maxPages * 3 to discover enough
     const bfsVisited = new Set();
     let queue = [baseUrl];
-    while (queue.length > 0 && bfsVisited.size < maxPages * 2) {
+    while (queue.length > 0 && allDiscoveredPages.size < maxPages * 3) {
       const url = queue.shift();
       if (bfsVisited.has(url)) continue;
       bfsVisited.add(url);
@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
       const { html, links } = await fetchAndExtractLinks(url);
       if (html) htmlCache.set(url, html);
       for (const link of links) {
-        if (!bfsVisited.has(link)) queue.push(link);
+        if (!bfsVisited.has(link) && !queue.includes(link)) queue.push(link);
       }
     }
 
