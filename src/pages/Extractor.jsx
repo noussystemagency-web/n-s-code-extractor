@@ -465,8 +465,8 @@ export default function Extractor() {
         </div>
       </header>
 
-      <div className="px-4 md:px-6 py-0">
-        <div className="flex gap-0" style={{height: 'calc(100vh - 120px)'}}>
+      <div style={{width: '100%', padding: '0'}}>
+        <div style={{display: 'flex', width: '100%', height: 'calc(100vh - 120px)'}}>
 
           {/* ── LEFT PANEL ── fixed width, scrollable content, fixed bottom buttons */}
           <div className="flex flex-col bg-white border-r border-slate-200 shadow-sm" style={{width: '380px', minWidth: '380px', flexShrink: 0}}>
