@@ -149,16 +149,22 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Para SPAs con pocas páginas, genera rutas con IA (timeout 10s)
-    if (visited.size < 8 && baseUrlObj.hostname.includes('base44')) {
+    // Para SPAs con pocas páginas, genera rutas con IA (timeout 15s, busca más agresivamente)
+    if (visited.size < 15 && baseUrlObj.hostname.includes('base44')) {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const timeout = setTimeout(() => controller.abort(), 15000);
         
-        const aiPrompt = `Lista 10 rutas probables para esta SPA (ej: /dashboard, /settings). Solo rutas, sin explicación.
+        const visitedList = Array.from(visited).slice(0, 5).join('\n');
+        const aiPrompt = `Esta es una SPA Base44. Genera una lista de 20 rutas internas probables basándote en el patrón de navegación.
+        
 Base URL: ${baseUrl}
-Encontradas: ${Array.from(visited).slice(0, 3).join(', ')}
-Retorna JSON: {"routes": ["/route1", "/route2"]}`;
+Páginas descubiertas: 
+${visitedList}
+
+Retorna SOLO JSON: {"routes": ["/route1", "/route2", ...]}
+
+Incluye rutas comunes de apps SPA como /dashboard, /settings, /profile, /workspace, /projects, /team, /analytics, /billing, /integrations, etc.`;
         
         const aiResponse = await base44.integrations.Core.InvokeLLM({
           prompt: aiPrompt,
@@ -168,11 +174,35 @@ Retorna JSON: {"routes": ["/route1", "/route2"]}`;
         clearTimeout(timeout);
         
         if (aiResponse?.routes?.length) {
-          for (const route of aiResponse.routes.slice(0, 10)) {
+          for (const route of aiResponse.routes.slice(0, 20)) {
             const fullUrl = baseUrlObj.origin + route;
-            if (!visited.has(fullUrl) && visited.size < maxPages) {
-              visited.add(fullUrl);
+            if (!visited.has(fullUrl) && !queue.includes(fullUrl) && visited.size < maxPages) {
               queue.push(fullUrl);
+            }
+          }
+          
+          // Continúa procesando la queue con las nuevas rutas
+          while (queue.length > 0 && visited.size < maxPages) {
+            const url = queue.shift();
+            if (visited.has(url)) continue;
+            visited.add(url);
+            
+            const { html, links } = await fetchAndExtractLinks(url);
+            if (html) htmlCache.set(url, html);
+            
+            // Extrae más rutas de JS
+            const jsRoutes = extractRoutesFromJS(html);
+            for (const route of jsRoutes) {
+              const fullUrl = baseUrlObj.origin + route;
+              if (!visited.has(fullUrl) && !queue.includes(fullUrl) && visited.size < maxPages) {
+                queue.push(fullUrl);
+              }
+            }
+            
+            for (const link of links) {
+              if (!visited.has(link) && !queue.includes(link) && visited.size < maxPages) {
+                queue.push(link);
+              }
             }
           }
         }
