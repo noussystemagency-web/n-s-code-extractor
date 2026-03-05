@@ -202,23 +202,28 @@ Deno.serve(async (req) => {
           html = await response.text();
         }
         
-        // If render_spa enabled and root is empty, generate with AI (skip to save time)
-        if (render_spa && i < 5) {
-          const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
-          const rootMatch = rootRegex.exec(html);
-          const rootContent = rootMatch ? rootMatch[1].trim() : '';
+        // Always try to fill empty or small root divs with AI-generated content
+        const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
+        const rootMatch = rootRegex.exec(html);
+        const rootContent = rootMatch ? rootMatch[1].trim() : '';
+        
+        if (!rootContent || rootContent.length < 200) {
+          // Extract metadata
+          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+          const title = titleMatch ? titleMatch[1] : 'Page';
+          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+          const description = descMatch ? descMatch[1] : '';
+          const pathname = new URL(pageUrl).pathname;
           
-          if (!rootContent || rootContent.length < 100) {
-            // Extract metadata
-            const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-            const title = titleMatch ? titleMatch[1] : 'Page';
-            const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-            const description = descMatch ? descMatch[1] : '';
-            
+          try {
             // Generate with AI
             const aiResponse = await base44.integrations.Core.InvokeLLM({
-              prompt: `Generate realistic HTML for a dashboard/app page titled "${title}". Description: "${description}". 
-Return ONLY HTML markup for <div id="root"></div> content - no wrapper divs, no explanations.`,
+              prompt: `Genera HTML realista para una página de aplicación titulada "${title}".
+Descripción: "${description}"
+URL: ${pathname}
+Contexto: Es parte de una aplicación SPA tipo Base44.
+
+Retorna SOLO el HTML markup completo para el contenido - sin divs wrapper, sin explicaciones. Incluye estilos inline si es necesario para que se vea bien.`,
               response_json_schema: {
                 type: 'object',
                 properties: {
@@ -233,6 +238,8 @@ Return ONLY HTML markup for <div id="root"></div> content - no wrapper divs, no 
                 `<div id="root">${aiResponse.html}</div>`
               );
             }
+          } catch (e) {
+            console.warn(`AI generation failed for ${pageUrl}:`, e.message);
           }
         }
         
