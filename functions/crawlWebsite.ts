@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 Deno.serve(async (req) => {
   try {
@@ -19,16 +19,12 @@ Deno.serve(async (req) => {
     const discoveredPages = new Set();
     const extractedPages = [];
 
-    // Helper to extract routes from JavaScript (improved for SPA detection)
+    // Helper to extract routes from JavaScript
     const extractRoutesFromJS = (jsCode) => {
       const routes = new Set();
       const patterns = [
-        /path:\s*["']([^"']+)["']/g,
-        /route\(["']([^"']+)["']\)/g,
-        /<Route path=["']([^"']+)["']/g,
         /href=["']\/([^"'\/][^"']*?)["']/g,
-        /"pathname":\s*["']([^"']+)["']/g,
-        /\/([a-zA-Z0-9_-]+)/g,  // Rutas dinámicas comunes
+        /<a[^>]+href=["']\/([^"']+)["']/g,
       ];
       
       for (const pattern of patterns) {
@@ -141,73 +137,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Also try sitemap for any pages not found by BFS
+    // Try sitemap for any pages not found by BFS
     const sitemapUrls = await fetchSitemap();
     for (const url of sitemapUrls) {
       if (!visited.has(url) && visited.size < maxPages) {
         visited.add(url);
-      }
-    }
-    
-    // Para SPAs con pocas páginas, genera rutas con IA (timeout 15s, busca más agresivamente)
-    if (visited.size < 15 && baseUrlObj.hostname.includes('base44')) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-        
-        const visitedList = Array.from(visited).slice(0, 5).join('\n');
-        const aiPrompt = `Esta es una SPA Base44. Genera una lista de 20 rutas internas probables basándote en el patrón de navegación.
-        
-Base URL: ${baseUrl}
-Páginas descubiertas: 
-${visitedList}
-
-Retorna SOLO JSON: {"routes": ["/route1", "/route2", ...]}
-
-Incluye rutas comunes de apps SPA como /dashboard, /settings, /profile, /workspace, /projects, /team, /analytics, /billing, /integrations, etc.`;
-        
-        const aiResponse = await base44.integrations.Core.InvokeLLM({
-          prompt: aiPrompt,
-          response_json_schema: { type: 'object', properties: { routes: { type: 'array', items: { type: 'string' } } } }
-        });
-        
-        clearTimeout(timeout);
-        
-        if (aiResponse?.routes?.length) {
-          for (const route of aiResponse.routes.slice(0, 20)) {
-            const fullUrl = baseUrlObj.origin + route;
-            if (!visited.has(fullUrl) && !queue.includes(fullUrl) && visited.size < maxPages) {
-              queue.push(fullUrl);
-            }
-          }
-          
-          // Continúa procesando la queue con las nuevas rutas
-          while (queue.length > 0 && visited.size < maxPages) {
-            const url = queue.shift();
-            if (visited.has(url)) continue;
-            visited.add(url);
-            
-            const { html, links } = await fetchAndExtractLinks(url);
-            if (html) htmlCache.set(url, html);
-            
-            // Extrae más rutas de JS
-            const jsRoutes = extractRoutesFromJS(html);
-            for (const route of jsRoutes) {
-              const fullUrl = baseUrlObj.origin + route;
-              if (!visited.has(fullUrl) && !queue.includes(fullUrl) && visited.size < maxPages) {
-                queue.push(fullUrl);
-              }
-            }
-            
-            for (const link of links) {
-              if (!visited.has(link) && !queue.includes(link) && visited.size < maxPages) {
-                queue.push(link);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('AI skip - continuando con crawler normal');
       }
     }
 
@@ -232,38 +166,7 @@ Incluye rutas comunes de apps SPA como /dashboard, /settings, /profile, /workspa
           html = await response.text();
         }
         
-        // Solo generar con IA para primeras 3 páginas (timeout estricto)
-        if (i < 3) {
-          const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
-          const rootMatch = rootRegex.exec(html);
-          const rootContent = rootMatch ? rootMatch[1].trim() : '';
-          
-          if (!rootContent || rootContent.length < 150) {
-            try {
-              const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), 8000);
-              
-              const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-              const title = titleMatch ? titleMatch[1] : 'Page';
-              
-              const aiResponse = await base44.integrations.Core.InvokeLLM({
-                prompt: `HTML para página SPA: "${title}". Solo contenido, sin wrapper.`,
-                response_json_schema: { type: 'object', properties: { html: { type: 'string' } } }
-              });
-              
-              clearTimeout(timeout);
-              
-              if (aiResponse?.html) {
-                html = html.replace(
-                  /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is,
-                  `<div id="root">${aiResponse.html}</div>`
-                );
-              }
-            } catch (e) {
-              // Ignorar timeout, continuar sin IA
-            }
-          }
-        }
+
         
         // Extract page info
         const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
