@@ -77,8 +77,8 @@
     "three": "^0.171.0",
     "vaul": "^1.1.2",
     "zod": "^3.24.2",
-    "node-releases": "^2.0.15",
-    "browserslist": "latest",
+    "node-releases": "^2.0.18",
+    "browserslist": "^4.23.0",
     "autoprefixer": "latest",
     "baseline-browser-mapping": "latest"
   },
