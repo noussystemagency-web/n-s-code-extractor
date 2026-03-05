@@ -687,8 +687,8 @@ export default function Extractor() {
             />
           </div>
         </div>
-        </div>{/* end flex row */}
-      </div>
+        </div>
+        </div>
 
       {/* Disclaimer */}
       <footer className="border-t border-slate-200 mt-4 py-4">
