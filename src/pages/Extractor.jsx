@@ -291,7 +291,7 @@ export default function Extractor() {
     try {
       const response = await base44.functions.invoke('crawlWebsite', {
         baseUrl: url,
-        maxPages: 20,
+        maxPages: 30,
         render_spa: options.render_spa,
       });
 
