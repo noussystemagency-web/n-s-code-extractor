@@ -77,8 +77,8 @@
     "three": "^0.171.0",
     "vaul": "^1.1.2",
     "zod": "^3.24.2",
-    "node-releases": "2.0.14",
-    "browserslist": "4.22.3",
+    "node-releases": "^2.0.18",
+    "browserslist": "^4.23.0",
     "autoprefixer": "^10.4.19",
     "baseline-browser-mapping": "latest",
     "caniuse-lite": "1.0.30001640"
