@@ -41,68 +41,45 @@ Deno.serve(async (req) => {
       return routes;
     };
 
-    // Helper to fetch and extract links from HTML
+    // Helper to fetch and extract links from HTML (fast, no script fetching)
     const fetchAndExtractLinks = async (url) => {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          }
+          signal: controller.signal,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
         });
+        clearTimeout(timeout);
         
-        if (!response.ok) return [];
+        if (!response.ok) return { html: null, links: [] };
 
         const html = await response.text();
         const links = new Set();
         
-        // Extract links from HTML href attributes
-        const linkRegex = /href=["']([^"']+)["']/gi;
+        const linkRegex = /href=["']([^"'#?]+)["']/gi;
         let match;
         while ((match = linkRegex.exec(html)) !== null) {
           let href = match[1];
-          if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) continue;
+          if (!href || href.startsWith('javascript:') || href.startsWith('mailto:') || href.match(/\.(pdf|jpg|jpeg|png|gif|svg|ico|zip|css|js)$/i)) continue;
           
           if (href.startsWith('/')) {
             href = baseUrlObj.origin + href;
           } else if (!href.startsWith('http')) {
-            href = new URL(href, url).href;
-          }
-          
-          const linkObj = new URL(href);
-          if (linkObj.hostname === domain) {
-            links.add(linkObj.origin + linkObj.pathname);
-          }
-        }
-        
-        // Extract script tags and fetch them for route analysis
-        const scriptRegex = /<script[^>]*src=["']([^"']+)["']/gi;
-        while ((match = scriptRegex.exec(html)) !== null) {
-          let scriptUrl = match[1];
-          if (scriptUrl.startsWith('/')) {
-            scriptUrl = baseUrlObj.origin + scriptUrl;
-          } else if (!scriptUrl.startsWith('http')) {
-            scriptUrl = new URL(scriptUrl, url).href;
+            try { href = new URL(href, url).href; } catch { continue; }
           }
           
           try {
-            const scriptRes = await fetch(scriptUrl);
-            if (scriptRes.ok) {
-              const scriptCode = await scriptRes.text();
-              const routes = extractRoutesFromJS(scriptCode);
-              for (const route of routes) {
-                const routeUrl = baseUrlObj.origin + route;
-                links.add(routeUrl);
-              }
+            const linkObj = new URL(href);
+            if (linkObj.hostname === domain) {
+              links.add(linkObj.origin + linkObj.pathname);
             }
-          } catch (e) {
-            // Skip if script fetch fails
-          }
+          } catch { continue; }
         }
         
-        return Array.from(links);
+        return { html, links: Array.from(links) };
       } catch (e) {
-        console.error(`Error fetching ${url}:`, e.message);
-        return [];
+        return { html: null, links: [] };
       }
     };
 
