@@ -132,105 +132,71 @@ Deno.serve(async (req) => {
 
     // Discovery phase: combine multiple sources
     const allDiscoveredPages = new Set();
+    allDiscoveredPages.add(baseUrl);
     
-    // 1. Extract from main page and follow links
-    let queue = [baseUrl];
-    while (queue.length > 0 && allDiscoveredPages.size < maxPages) {
-      const url = queue.shift();
-      if (allDiscoveredPages.has(url)) continue;
-      allDiscoveredPages.add(url);
-      
-      const newLinks = await fetchAndExtractLinks(url);
-      for (const link of newLinks) {
-        if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
-          queue.push(link);
-        }
-      }
-    }
-    
-    // 2. Try to fetch sitemap
+    // 1. Try to fetch sitemap first (faster)
     const sitemapUrls = await fetchSitemap();
     for (const url of sitemapUrls) {
       if (allDiscoveredPages.size < maxPages) {
         allDiscoveredPages.add(url);
       }
     }
-
-    // Extraction phase
-    const pages = Array.from(allDiscoveredPages);
     
-    for (let i = 0; i < pages.length; i++) {
-      const pageUrl = pages[i];
-      
-      try {
-        // Fetch page
-        const response = await fetch(pageUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          }
-        });
-        
-        if (!response.ok) continue;
-        
-        let html = await response.text();
-        
-        // If render_spa enabled and root is empty, generate with AI
-        if (render_spa) {
-          const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
-          const rootMatch = rootRegex.exec(html);
-          const rootContent = rootMatch ? rootMatch[1].trim() : '';
-          
-          if (!rootContent || rootContent.length < 100) {
-            // Extract metadata
-            const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-            const title = titleMatch ? titleMatch[1] : 'Page';
-            const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-            const description = descMatch ? descMatch[1] : '';
-            
-            // Generate with AI
-            const aiResponse = await base44.integrations.Core.InvokeLLM({
-              prompt: `Generate realistic HTML for a dashboard/app page titled "${title}". Description: "${description}". 
-Return ONLY HTML markup for <div id="root"></div> content - no wrapper divs, no explanations.`,
-              response_json_schema: {
-                type: 'object',
-                properties: {
-                  html: { type: 'string' }
-                }
-              }
-            });
-            
-            if (aiResponse?.html) {
-              html = html.replace(
-                /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is,
-                `<div id="root">${aiResponse.html}</div>`
-              );
-            }
-          }
+    // 2. Extract from main page if still need more
+    if (allDiscoveredPages.size < maxPages) {
+      const newLinks = await fetchAndExtractLinks(baseUrl);
+      for (const link of newLinks) {
+        if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
+          allDiscoveredPages.add(link);
         }
-        
-        // Extract page info
-        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-        const title = titleMatch ? titleMatch[1] : new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
-        
-        // Extract inline CSS
-        const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-        const inlineStyles = [];
-        let styleMatch;
-        while ((styleMatch = styleRegex.exec(html)) !== null) {
-          inlineStyles.push(styleMatch[1].trim());
-        }
-        
-        extractedPages.push({
-          url: pageUrl,
-          pathname: new URL(pageUrl).pathname,
-          title,
-          html: html.substring(0, 100000),
-          css: inlineStyles.join('\n\n'),
-        });
-        
-      } catch (e) {
-        console.error(`Error extracting ${pageUrl}:`, e.message);
       }
+    }
+
+    // Extraction phase - parallel requests with limit
+    const pages = Array.from(allDiscoveredPages);
+    const parallelLimit = 5;
+    
+    for (let i = 0; i < pages.length; i += parallelLimit) {
+      const batch = pages.slice(i, i + parallelLimit);
+      const batchPromises = batch.map(async (pageUrl) => {
+        try {
+          const response = await fetch(pageUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            }
+          });
+          
+          if (!response.ok) return null;
+          
+          let html = await response.text();
+          
+          // Extract page info
+          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+          const title = titleMatch ? titleMatch[1] : new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
+          
+          // Extract inline CSS
+          const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+          const inlineStyles = [];
+          let styleMatch;
+          while ((styleMatch = styleRegex.exec(html)) !== null) {
+            inlineStyles.push(styleMatch[1].trim());
+          }
+          
+          return {
+            url: pageUrl,
+            pathname: new URL(pageUrl).pathname,
+            title,
+            html: html.substring(0, 50000),
+            css: inlineStyles.join('\n\n').substring(0, 20000),
+          };
+        } catch (e) {
+          console.error(`Error extracting ${pageUrl}:`, e.message);
+          return null;
+        }
+      });
+      
+      const results = await Promise.all(batchPromises);
+      extractedPages.push(...results.filter(r => r !== null));
     }
 
     return Response.json({
