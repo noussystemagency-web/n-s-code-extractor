@@ -418,13 +418,13 @@ export default function Extractor() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div style={{display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden'}}>
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-xl z-40 flex-shrink-0">
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-              <Crosshair className="w-4.5 h-4.5 text-white" />
+              <Crosshair className="w-4 h-4 text-white" />
             </div>
             <div>
               <h1 className="text-sm font-bold tracking-tight text-slate-900">
@@ -447,12 +447,6 @@ export default function Extractor() {
                     <span className="font-bold text-green-700">{stats.completed}</span>
                   </div>
                 )}
-                {stats.extracting > 0 && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200">
-                    <span className="text-blue-600">⟳</span>
-                    <span className="font-bold text-blue-700">{stats.extracting}</span>
-                  </div>
-                )}
                 {stats.error > 0 && (
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200">
                     <span className="text-red-600">✕</span>
@@ -465,157 +459,97 @@ export default function Extractor() {
         </div>
       </header>
 
-      <div style={{width: '100%', padding: '0'}}>
-        <div style={{display: 'flex', width: '100%', height: 'calc(100vh - 60px)'}}>
+      {/* ── MAIN TWO-COLUMN LAYOUT ── */}
+      <div style={{display: 'flex', flex: 1, overflow: 'hidden', width: '100%'}}>
 
-          {/* ── LEFT PANEL ── fixed width, scrollable content, fixed bottom buttons */}
-          <div className="flex flex-col bg-white border-r border-slate-200 shadow-sm" style={{width: '420px', minWidth: '420px', flexShrink: 0}}>
-            
-            {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto">
-              {/* URL Input */}
-              <div className="px-4 pt-4 pb-3">
-                <UrlInput 
-                  onSubmit={handleExtract} 
-                  isLoading={isExtracting}
-                  onUrlChange={setCurrentUrl}
-                />
+        {/* ── LEFT PANEL ── 380px fixed, scrollable */}
+        <div className="flex flex-col bg-white border-r border-slate-200 shadow-sm" style={{width: '380px', minWidth: '380px', flexShrink: 0, height: '100%'}}>
+          
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            {/* URL Input */}
+            <div className="px-4 pt-4 pb-3">
+              <UrlInput 
+                onSubmit={handleExtract} 
+                isLoading={isExtracting}
+                onUrlChange={setCurrentUrl}
+              />
+            </div>
+
+            <div className="border-t border-slate-100" />
+
+            {/* Modo de Extracción */}
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Modo de Extracción</span>
+                <div className="flex-1 h-px bg-slate-200" />
               </div>
+              <ModeSelector mode={mode} setMode={setMode} />
+            </div>
 
-              <div className="border-t border-slate-100" />
+            <div className="border-t border-slate-100" />
 
-              {/* Section 1: Modo de Extracción */}
-              <div className="px-4 py-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Modo de Extracción</span>
-                  <div className="flex-1 h-px bg-slate-200" />
-                </div>
-                <ModeSelector mode={mode} setMode={setMode} />
+            {/* Opciones Avanzadas */}
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Opciones Avanzadas</span>
+                <div className="flex-1 h-px bg-slate-200" />
               </div>
-
-              <div className="border-t border-slate-100" />
-
-              {/* Section 2: Opciones Avanzadas */}
-              <div className="px-4 py-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Opciones Avanzadas</span>
-                  <div className="flex-1 h-px bg-slate-200" />
-                </div>
-                <div className="space-y-1">
-                  <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                    <input type="checkbox" checked={options.render_spa} onChange={(e) => setOptions({...options, render_spa: e.target.checked})} className="w-4 h-4 rounded border-slate-300 bg-white text-amber-600 focus:ring-amber-500" />
-                    <div>
-                      <div className="text-xs text-slate-700 font-medium">Renderizar JavaScript (SPAs)</div>
-                      <div className="text-[10px] text-slate-500">Ejecuta JS antes de extraer</div>
-                    </div>
-                  </label>
-                  <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                    <input type="checkbox" checked={useAdvancedExtraction} onChange={(e) => setUseAdvancedExtraction(e.target.checked)} className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500" />
-                    <div>
-                      <div className="text-xs text-slate-700 font-medium">Extracción Avanzada</div>
-                      <div className="text-[10px] text-slate-500">Navegador headless + más opciones</div>
-                    </div>
-                  </label>
-                  <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                    <input type="checkbox" checked={useEnhancedComponentDetection} onChange={(e) => setUseEnhancedComponentDetection(e.target.checked)} className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500" />
-                    <div>
-                      <div className="text-xs text-slate-700 font-medium">Detección Mejorada</div>
-                      <div className="text-[10px] text-slate-500">Análisis profundo de componentes</div>
-                    </div>
-                  </label>
-                </div>
-                <div className="mt-3">
-                  <ExtractionOptions options={options} setOptions={setOptions} cleanup={cleanup} setCleanup={setCleanup} />
-                </div>
+              <div className="space-y-1">
+                <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                  <input type="checkbox" checked={options.render_spa} onChange={(e) => setOptions({...options, render_spa: e.target.checked})} className="w-4 h-4 rounded border-slate-300 bg-white text-amber-600 focus:ring-amber-500" />
+                  <div>
+                    <div className="text-xs text-slate-700 font-medium">Renderizar JavaScript (SPAs)</div>
+                    <div className="text-[10px] text-slate-500">Ejecuta JS antes de extraer</div>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                  <input type="checkbox" checked={useAdvancedExtraction} onChange={(e) => setUseAdvancedExtraction(e.target.checked)} className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500" />
+                  <div>
+                    <div className="text-xs text-slate-700 font-medium">Extracción Avanzada</div>
+                    <div className="text-[10px] text-slate-500">Navegador headless + más opciones</div>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                  <input type="checkbox" checked={useEnhancedComponentDetection} onChange={(e) => setUseEnhancedComponentDetection(e.target.checked)} className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500" />
+                  <div>
+                    <div className="text-xs text-slate-700 font-medium">Detección Mejorada</div>
+                    <div className="text-[10px] text-slate-500">Análisis profundo de componentes</div>
+                  </div>
+                </label>
               </div>
-
-              <div className="border-t border-slate-100" />
-
-              {/* Section 3: Optimización */}
-              <div className="px-4 py-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Optimización</span>
-                  <div className="flex-1 h-px bg-slate-200" />
-                </div>
-                <AdvancedOptions options={optimizationOptions} setOptions={setOptimizationOptions} />
+              <div className="mt-3">
+                <ExtractionOptions options={options} setOptions={setOptions} cleanup={cleanup} setCleanup={setCleanup} />
               </div>
             </div>
 
-            {/* ── FIXED BOTTOM BUTTONS ── */}
-            <div className="border-t border-slate-200 bg-white px-4 py-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  onClick={() => currentUrl && handleExtract(currentUrl)}
-                  disabled={!currentUrl || isExtracting || isCrawling}
-                  className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
-                >
-                  {isExtracting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Extrayendo</>) : (<><Zap className="w-4 h-4 mr-2" />Extraer</>)}
-                </Button>
-                <Button
-                  onClick={() => currentUrl && handleCrawlWebsite(currentUrl)}
-                  disabled={!currentUrl || isCrawling || isExtracting}
-                  className="h-11 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition-all"
-                >
-                  {isCrawling ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Crawling</>) : '🕷️ Crawl'}
-                </Button>
+            <div className="border-t border-slate-100" />
+
+            {/* Optimización */}
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Optimización</span>
+                <div className="flex-1 h-px bg-slate-200" />
               </div>
-              {extractedData && (
-                <Button onClick={handleOptimizeCode} disabled={isOptimizing} variant="outline" className="w-full h-9 bg-white border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-sm">
-                  {isOptimizing ? (<><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />Optimizando...</>) : 'Optimizar Código'}
-                </Button>
-              )}
+              <AdvancedOptions options={optimizationOptions} setOptions={setOptimizationOptions} />
             </div>
-          </div>
 
-          {/* Divider */}
-          <div className="w-px bg-slate-200 flex-shrink-0" />
+            <div className="border-t border-slate-100" />
 
-          {/* ── RIGHT PANEL ── takes all remaining space */}
-          <div style={{flex: 1, minWidth: 0, overflow: 'hidden'}} className="overflow-y-auto px-6 py-4 space-y-4">
-            {isCrawling || siteData ? (
-              <>
-                {isCrawling && (
-                  <SiteExtractionProgress
-                    pages={crawlProgress}
-                    isComplete={false}
+            {/* Acciones sobre el código extraído */}
+            {extractedData && (
+              <div className="px-4 py-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acciones</span>
+                  <div className="flex-1 h-px bg-slate-200" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <ActionBar
+                    data={extractedData}
+                    onGeneratePrompt={handleGeneratePrompt}
+                    onCloneToBase44={() => setShowCloneModal(true)}
+                    isGenerating={isGenerating}
                   />
-                )}
-                {siteData && (
-                  <>
-                    <FullSitePreview
-                      siteData={siteData}
-                      onSendToBase44={handleSendSiteToBase44}
-                      isSending={false}
-                    />
-                    <AICodeManipulation
-                      html={siteData.pages.slice(0, 3).map(p => p.html).join('\n\n').substring(0, 30000)}
-                      css={siteData.pages.map(p => p.css).filter(Boolean).join('\n\n').substring(0, 15000)}
-                      js=""
-                      onApplyCode={() => {}}
-                    />
-                  </>
-                )}
-              </>
-            ) : showLivePreview && extractedData ? (
-              <LivePreview
-                html={extractedData.html}
-                css={extractedData.css?.inline}
-                js={(extractedData.js?.inline || []).join('\n')}
-                device={previewDevice}
-              />
-            ) : (
-              <PreviewPanel data={extractedData} screenshotUrl={screenshotUrl} />
-            )}
-            
-            <div className="flex flex-wrap gap-2">
-              <ActionBar
-                data={extractedData}
-                onGeneratePrompt={handleGeneratePrompt}
-                onCloneToBase44={() => setShowCloneModal(true)}
-                isGenerating={isGenerating}
-              />
-              {extractedData && (
-                <>
                   <Button
                     onClick={() => setShowEditor(true)}
                     variant="outline"
@@ -633,51 +567,28 @@ export default function Extractor() {
                   >
                     {showLivePreview ? 'Ver Código' : 'Vista Previa Viva'}
                   </Button>
-                </>
-              )}
-            </div>
-
-            {/* Additional Panels */}
-            {extractedData && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <ComponentDetector 
-                  components={detectedComponents}
-                  onSaveComponent={() => queryClient.invalidateQueries({ queryKey: ['components'] })}
-                />
-                <ReactConverter 
-                  html={extractedData.html}
-                  css={extractedData.css?.inline}
-                />
+                  <Button onClick={handleOptimizeCode} disabled={isOptimizing} variant="outline" size="sm" className="bg-white border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-xs h-9">
+                    {isOptimizing ? (<><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Optimizando...</>) : 'Optimizar'}
+                  </Button>
+                </div>
               </div>
             )}
 
-            {extractedData && (
-              <AnalysisPanel extractedData={extractedData} />
-            )}
+            <div className="border-t border-slate-100" />
 
-            {/* AI Code Generator */}
-            <AICodeGenerator onInsertCode={handleInsertGeneratedCode} />
+            {/* Generador IA */}
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Generador IA</span>
+                <div className="flex-1 h-px bg-slate-200" />
+              </div>
+              <AICodeGenerator onInsertCode={handleInsertGeneratedCode} />
+            </div>
 
-            {/* AI Code Manipulation */}
-            {extractedData && (
-              <AICodeManipulation
-                html={extractedData.html}
-                css={extractedData.css?.inline}
-                js={(extractedData.js?.inline || []).join('\n')}
-                onApplyCode={(code) => {
-                  setExtractedData({
-                    ...extractedData,
-                    html: code.html || extractedData.html,
-                    css: { ...extractedData.css, inline: code.css || extractedData.css?.inline },
-                    js: { ...extractedData.js, inline: code.js ? [code.js] : extractedData.js?.inline },
-                  });
-                  toast.success('Código aplicado exitosamente');
-                }}
-              />
-            )}
+            <div className="border-t border-slate-100" />
 
-            {/* Recent Projects */}
-            <div className="mt-4">
+            {/* Proyectos recientes */}
+            <div className="px-4 py-3">
               <RecentProjects
                 projects={projects}
                 onSelect={handleSelectProject}
@@ -685,15 +596,59 @@ export default function Extractor() {
               />
             </div>
           </div>
+
+          {/* ── FIXED BOTTOM BUTTONS ── */}
+          <div className="border-t border-slate-200 bg-white px-4 py-3 flex-shrink-0">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={() => currentUrl && handleExtract(currentUrl)}
+                disabled={!currentUrl || isExtracting || isCrawling}
+                className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all"
+              >
+                {isExtracting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Extrayendo</>) : (<><Zap className="w-4 h-4 mr-2" />Extraer</>)}
+              </Button>
+              <Button
+                onClick={() => currentUrl && handleCrawlWebsite(currentUrl)}
+                disabled={!currentUrl || isCrawling || isExtracting}
+                className="h-11 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition-all"
+              >
+                {isCrawling ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Crawling</>) : '🕷️ Crawl'}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT PANEL ── flex:1, solo vista previa */}
+        <div style={{flex: 1, minWidth: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
+          {isCrawling || siteData ? (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {isCrawling && (
+                <SiteExtractionProgress pages={crawlProgress} isComplete={false} />
+              )}
+              {siteData && (
+                <FullSitePreview
+                  siteData={siteData}
+                  onSendToBase44={handleSendSiteToBase44}
+                  isSending={false}
+                />
+              )}
+            </div>
+          ) : showLivePreview && extractedData ? (
+            <div style={{flex: 1, overflow: 'hidden'}}>
+              <LivePreview
+                html={extractedData.html}
+                css={extractedData.css?.inline}
+                js={(extractedData.js?.inline || []).join('\n')}
+                device={previewDevice}
+              />
+            </div>
+          ) : (
+            <div style={{flex: 1, overflow: 'hidden'}}>
+              <PreviewPanel data={extractedData} screenshotUrl={screenshotUrl} />
+            </div>
+          )}
         </div>
       </div>
-
-      <footer className="border-t border-slate-200 mt-4 py-4">
-        <p className="text-center text-[11px] text-slate-500 max-w-2xl mx-auto px-4">
-          Esta herramienta es para uso educativo y análisis de páginas propias o públicas.
-          Respeta copyright y términos de servicio. NØÜS SYSTEM no se responsabiliza del uso indebido.
-        </p>
-      </footer>
 
       <PromptModal
         open={showPrompt}
