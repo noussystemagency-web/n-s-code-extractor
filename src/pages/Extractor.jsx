@@ -678,18 +678,20 @@ export default function Extractor() {
           </div>
         </div>
 
-        {/* Recent Projects */}
-        <div className="mt-8">
-          <RecentProjects
-            projects={projects}
-            onSelect={handleSelectProject}
-            onDelete={handleDeleteProject}
-          />
+          {/* Recent Projects */}
+          <div className="mt-4">
+            <RecentProjects
+              projects={projects}
+              onSelect={handleSelectProject}
+              onDelete={handleDeleteProject}
+            />
+          </div>
         </div>
+        </div>{/* end flex row */}
       </div>
 
       {/* Disclaimer */}
-      <footer className="border-t border-slate-200 mt-12 py-4">
+      <footer className="border-t border-slate-200 mt-4 py-4">
         <p className="text-center text-[11px] text-slate-500 max-w-2xl mx-auto px-4">
           Esta herramienta es para uso educativo y análisis de páginas propias o públicas.
           Respeta copyright y términos de servicio. NØÜS SYSTEM no se responsabiliza del uso indebido.
