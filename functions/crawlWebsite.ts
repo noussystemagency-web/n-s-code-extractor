@@ -155,8 +155,8 @@ Deno.serve(async (req) => {
           html = await response.text();
         }
         
-        // If render_spa enabled and root is empty, generate with AI
-        if (render_spa) {
+        // If render_spa enabled and root is empty, generate with AI (skip to save time)
+        if (render_spa && i < 5) {
           const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
           const rootMatch = rootRegex.exec(html);
           const rootContent = rootMatch ? rootMatch[1].trim() : '';
