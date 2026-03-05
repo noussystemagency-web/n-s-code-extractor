@@ -675,13 +675,15 @@ export default function Extractor() {
                 }}
               />
             )}
-          {/* Recent Projects */}
-          <div className="mt-4">
-            <RecentProjects
-              projects={projects}
-              onSelect={handleSelectProject}
-              onDelete={handleDeleteProject}
-            />
+
+            {/* Recent Projects */}
+            <div className="mt-4">
+              <RecentProjects
+                projects={projects}
+                onSelect={handleSelectProject}
+                onDelete={handleDeleteProject}
+              />
+            </div>
           </div>
         </div>
       </div>
