@@ -78,10 +78,11 @@
     "vaul": "^1.1.2",
     "zod": "^3.24.2",
     "node-releases": "^2.0.13",
-    "browserslist": "^4.21.10",
+    "browserslist": "4.21.9",
     "autoprefixer": "^10.4.19",
     "baseline-browser-mapping": "latest",
-    "caniuse-lite": "^1.0.30001550"
+    "caniuse-lite": "^1.0.30001550",
+    "@babel/core": "^7.23.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
