@@ -48,6 +48,26 @@ const CLONE_METHODS = [
 ];
 
 export default function CloneToBase44Modal({ open, onOpenChange, data }) {
+  if (open && !data) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-xl bg-[#0f1419] border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <AlertCircle className="w-5 h-5 text-yellow-400" />
+              Sin datos para clonar
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Primero extrae una página con el botón "Extraer" antes de intentar clonarla.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => onOpenChange(false)} variant="ghost" className="text-slate-400">Cerrar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   const [method, setMethod] = useState('prompt');
   const [projectName, setProjectName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
