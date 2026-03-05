@@ -643,7 +643,7 @@ export default function Extractor() {
               />
             </div>
           ) : (
-            <div style={{flex: 1, overflow: 'hidden'}}>
+            <div style={{flex: 1, overflow: 'hidden', height: '100%'}}>
               <PreviewPanel data={extractedData} screenshotUrl={screenshotUrl} />
             </div>
           )}
