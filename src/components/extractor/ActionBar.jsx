@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Copy, Download, Rocket, FileText, Loader2, Check } from "lucide-react";
+import { Copy, Download, FileText, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ActionBar({ data, onGeneratePrompt, isGenerating, onCloneToBase44 }) {
