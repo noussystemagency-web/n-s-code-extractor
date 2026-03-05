@@ -476,7 +476,7 @@ export default function Extractor() {
               <ActionBar
                 data={extractedData}
                 onGeneratePrompt={handleGeneratePrompt}
-                onCloneToBase44={null}
+
                 isGenerating={isGenerating}
               />
               <Button onClick={() => setShowEditor(true)} variant="outline" size="sm" style={{ fontSize: '12px', height: '32px' }}>
