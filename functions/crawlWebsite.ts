@@ -19,26 +19,30 @@ Deno.serve(async (req) => {
     const discoveredPages = new Set();
     const extractedPages = [];
 
-    // Helper to extract routes from JavaScript
+    // Helper to extract routes from JavaScript (improved for SPA detection)
     const extractRoutesFromJS = (jsCode) => {
-      const routes = [];
+      const routes = new Set();
       const patterns = [
         /path:\s*["']([^"']+)["']/g,
         /route\(["']([^"']+)["']\)/g,
         /<Route path=["']([^"']+)["']/g,
         /href=["']\/([^"'\/][^"']*?)["']/g,
         /"pathname":\s*["']([^"']+)["']/g,
+        /\?id=([^&\s"']+)/g,  // Captura parámetros de URL
+        /\/([a-zA-Z0-9_-]+)/g,  // Rutas dinámicas comunes
       ];
       
       for (const pattern of patterns) {
         let match;
         while ((match = pattern.exec(jsCode)) !== null) {
           let route = match[1];
-          if (!route.startsWith('/')) route = '/' + route;
-          routes.push(route);
+          if (route && route.length < 50 && !route.match(/\.(js|css|png|jpg|gif|svg)/i)) {
+            if (!route.startsWith('/')) route = '/' + route;
+            routes.add(route);
+          }
         }
       }
-      return routes;
+      return Array.from(routes);
     };
 
     // Helper to fetch and extract links from HTML (fast, no script fetching)
