@@ -130,34 +130,34 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Discovery phase: combine multiple sources
+    // Discovery phase: collect all URLs first, then limit
     const allDiscoveredPages = new Set();
-    
-    // 1. Extract from main page and follow links
-    let queue = [baseUrl];
-    while (queue.length > 0 && allDiscoveredPages.size < maxPages) {
-      const url = queue.shift();
-      if (allDiscoveredPages.has(url)) continue;
+
+    // 1. Try sitemap first (most reliable source)
+    const sitemapUrls = await fetchSitemap();
+    for (const url of sitemapUrls) {
       allDiscoveredPages.add(url);
-      
+    }
+
+    // 2. BFS from main page - discover without limit first
+    const bfsVisited = new Set();
+    let queue = [baseUrl];
+    while (queue.length > 0 && bfsVisited.size < 60) {
+      const url = queue.shift();
+      if (bfsVisited.has(url)) continue;
+      bfsVisited.add(url);
+      allDiscoveredPages.add(url);
+
       const newLinks = await fetchAndExtractLinks(url);
       for (const link of newLinks) {
-        if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
+        if (!bfsVisited.has(link)) {
           queue.push(link);
         }
       }
     }
-    
-    // 2. Try to fetch sitemap
-    const sitemapUrls = await fetchSitemap();
-    for (const url of sitemapUrls) {
-      if (allDiscoveredPages.size < maxPages) {
-        allDiscoveredPages.add(url);
-      }
-    }
 
-    // Extraction phase
-    const pages = Array.from(allDiscoveredPages);
+    // Extraction phase - take up to maxPages from all discovered
+    const pages = Array.from(allDiscoveredPages).slice(0, maxPages);
     
     for (let i = 0; i < pages.length; i++) {
       const pageUrl = pages[i];
