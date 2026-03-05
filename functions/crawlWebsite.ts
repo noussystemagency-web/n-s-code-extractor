@@ -150,25 +150,26 @@ Deno.serve(async (req) => {
       }
     }
     
-    // For SPAs, generate missing pages with AI if we found less than 10 pages
-    if (visited.size < 10 && baseUrlObj.hostname.includes('base44')) {
+    // Para SPAs con pocas páginas, genera rutas con IA (timeout 10s)
+    if (visited.size < 8 && baseUrlObj.hostname.includes('base44')) {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        
+        const aiPrompt = `Lista 10 rutas probables para esta SPA (ej: /dashboard, /settings). Solo rutas, sin explicación.
+Base URL: ${baseUrl}
+Encontradas: ${Array.from(visited).slice(0, 3).join(', ')}
+Retorna JSON: {"routes": ["/route1", "/route2"]}`;
+        
         const aiResponse = await base44.integrations.Core.InvokeLLM({
-          prompt: `Este es un sitio Base44 SPA. Genera una lista de rutas comunes que podría tener basándose en el contexto.
-          Base URL: ${baseUrl}
-          Páginas encontradas: ${Array.from(visited).join(', ')}
-          
-          Retorna una lista de 15-20 rutas adicionales probables (ej: /dashboard, /settings, /profile, etc) en formato JSON array.`,
-          response_json_schema: {
-            type: 'object',
-            properties: {
-              routes: { type: 'array', items: { type: 'string' } }
-            }
-          }
+          prompt: aiPrompt,
+          response_json_schema: { type: 'object', properties: { routes: { type: 'array', items: { type: 'string' } } } }
         });
         
-        if (aiResponse?.routes && Array.isArray(aiResponse.routes)) {
-          for (const route of aiResponse.routes) {
+        clearTimeout(timeout);
+        
+        if (aiResponse?.routes?.length) {
+          for (const route of aiResponse.routes.slice(0, 10)) {
             const fullUrl = baseUrlObj.origin + route;
             if (!visited.has(fullUrl) && visited.size < maxPages) {
               visited.add(fullUrl);
@@ -177,7 +178,7 @@ Deno.serve(async (req) => {
           }
         }
       } catch (e) {
-        console.warn('AI route generation failed:', e.message);
+        console.warn('AI skip - continuando con crawler normal');
       }
     }
 
