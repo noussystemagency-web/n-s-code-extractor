@@ -84,16 +84,20 @@ export default function PreviewPanel({ data, screenshotUrl }) {
           </div>
         </div>
         <div className="h-64 flex items-center justify-center overflow-hidden bg-slate-50">
-          {screenshotUrl ? (
+          {screenshotUrl && screenshotUrl.startsWith('http') ? (
             <img src={screenshotUrl} alt="Preview" className="w-full h-full object-cover object-top" />
           ) : data?.html ? (
             <iframe
-              srcDoc={`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;padding:0;}${data.css?.inline || ''}</style></head><body>${data.html}</body></html>`}
+              srcDoc={`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${data.css?.inline || ''}</style></head><body>${data.html}</body></html>`}
               className="w-full h-full border-0"
+              sandbox="allow-same-origin"
               title="Vista previa"
             />
           ) : (
-            <div className="text-slate-500 text-sm">Ingresa una URL para comenzar</div>
+            <div className="flex flex-col items-center gap-2 text-slate-400">
+              <Monitor className="w-10 h-10" />
+              <span className="text-sm">Ingresa una URL para comenzar</span>
+            </div>
           )}
         </div>
       </div>
