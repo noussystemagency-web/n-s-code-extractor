@@ -531,7 +531,6 @@ export default function Extractor() {
 
       {/* Modales */}
       <PromptModal open={showPrompt} onOpenChange={setShowPrompt} promptData={promptData} />
-      <CloneToBase44Modal open={showCloneModal} onOpenChange={setShowCloneModal} data={extractedData} />
 
       {showEditor && (
         <CodeEditor
