@@ -177,8 +177,9 @@ Deno.serve(async (req) => {
           }
         }
         
-        // Fetch app scripts in parallel for route discovery (limit to 5 largest)
-        const scriptPromises = scriptUrls.map(async (scriptUrl) => {
+        // Fetch only the first 3 scripts (main app bundles) to avoid timeout
+        const limitedScripts = scriptUrls.slice(0, 3);
+        for (const scriptUrl of limitedScripts) {
           try {
             const scriptRes = await fetch(scriptUrl, { 
               headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -186,18 +187,13 @@ Deno.serve(async (req) => {
             });
             if (scriptRes.ok) {
               const scriptCode = await scriptRes.text();
-              return extractRoutesFromJS(scriptCode);
+              const routes = extractRoutesFromJS(scriptCode);
+              for (const route of routes) {
+                links.add(baseUrlObj.origin + route);
+              }
             }
           } catch (e) {
             // Skip failed scripts
-          }
-          return [];
-        });
-        
-        const allRoutes = await Promise.all(scriptPromises);
-        for (const routes of allRoutes) {
-          for (const route of routes) {
-            links.add(baseUrlObj.origin + route);
           }
         }
         
@@ -309,18 +305,7 @@ Only suggest routes that follow the same naming pattern. Be conservative - only 
       if (crawlIndex > Math.min(maxPages, 20)) break;
     }
     
-    // AI enhancement: suggest additional routes (only if we found few pages)
-    if (discoveredPages.size < 10) {
-      const aiSuggested = await enhanceRoutesWithAI(discoveredPages);
-      for (const route of aiSuggested) {
-        if (discoveredPages.size >= maxPages) break;
-        const fullUrl = baseUrlObj.origin + (route.startsWith('/') ? route : '/' + route);
-        if (!discoveredPages.has(fullUrl)) {
-          discoveredPages.add(fullUrl);
-          queue.push(fullUrl);
-        }
-      }
-    }
+    // Skip AI enhancement to save CPU time - rely on trojan horse detection
 
     // Extraction phase - parallel requests with limit
     const pages = Array.from(discoveredPages);
