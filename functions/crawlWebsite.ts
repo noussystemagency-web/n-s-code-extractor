@@ -18,47 +18,46 @@ Deno.serve(async (req) => {
     const domain = baseUrlObj.hostname;
     const extractedPages = [];
 
-    // Helper to extract routes from JavaScript - MEGA AGGRESSIVE
+    // Helper to extract routes from JavaScript - ULTRA AGGRESSIVE
     const extractRoutesFromJS = (jsCode) => {
       const routes = new Set();
+      
+      // Base44 specific: find page names (e.g., createPageUrl("Dashboard"))
+      const base44PagePattern = /["']([A-Z][a-zA-Z0-9_]{2,30})["']/g;
+      let match;
+      while ((match = base44PagePattern.exec(jsCode)) !== null) {
+        const pageName = match[1];
+        // Common Base44 page names
+        if (pageName.length >= 3 && pageName.length <= 30 && /^[A-Z]/.test(pageName)) {
+          routes.add('/' + pageName);
+        }
+      }
+      
+      // Standard route patterns
       const patterns = [
-        // React Router patterns
         /path:\s*["']([^"']+)["']/g,
         /<Route[^>]*path=["']([^"']+)["']/g,
-        
-        // Navigation patterns
         /to=["']\/([^"'?#]*)/g,
         /href=["']\/([^"'?#]*)/g,
         /navigate\(["']\/([^"'?#]*)/g,
         /createPageUrl\(["']([^"'?#]*)/g,
         /push\(["']\/([^"'?#]*)/g,
-        /replace\(["']\/([^"'?#]*)/g,
-        
-        // Base44 specific
-        /pages\/([A-Z][a-zA-Z0-9_]*)/g,
-        
-        // JSON path patterns
         /"pathname":\s*["']\/([^"'?#]*)/g,
         /"path":\s*["']\/([^"'?#]*)/g,
         /"url":\s*["']\/([^"'?#]*)/g,
-        /"route":\s*["']\/([^"'?#]*)/g,
       ];
       
       for (const pattern of patterns) {
-        let match;
         while ((match = pattern.exec(jsCode)) !== null) {
           let route = match[1];
-          // Clean up the route
           if (!route.startsWith('/')) route = '/' + route;
-          // Skip dynamic routes and invalid routes
           if (route.includes('*') || route.includes(':') || route.includes('${') || route.length > 100) continue;
-          // Skip code fragments
           if (route.includes(';') || route.includes('(') || route.includes(')') || route.includes('{')) continue;
-          // Must be alphanumeric + slashes + dashes + underscores only
           if (!/^\/[a-zA-Z0-9\/_-]*$/.test(route)) continue;
           routes.add(route);
         }
       }
+      
       return Array.from(routes);
     };
 
