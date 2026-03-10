@@ -164,29 +164,29 @@ Deno.serve(async (req) => {
     };
 
     // Discovery phase: aggressive crawling
-    const allDiscoveredPages = new Set();
+    const discoveredPages = new Set();
     const queue = [baseUrl];
-    allDiscoveredPages.add(baseUrl);
+    discoveredPages.add(baseUrl);
     
     // 1. Try sitemap first (fastest)
     const sitemapUrls = await fetchSitemap();
     for (const url of sitemapUrls) {
-      if (allDiscoveredPages.size < maxPages && !allDiscoveredPages.has(url)) {
-        allDiscoveredPages.add(url);
+      if (discoveredPages.size < maxPages && !discoveredPages.has(url)) {
+        discoveredPages.add(url);
         queue.push(url);
       }
     }
     
     // 2. Crawl pages breadth-first until we hit maxPages
     let crawlIndex = 0;
-    while (crawlIndex < queue.length && allDiscoveredPages.size < maxPages) {
+    while (crawlIndex < queue.length && discoveredPages.size < maxPages) {
       const currentUrl = queue[crawlIndex];
       crawlIndex++;
       
       const newLinks = await fetchAndExtractLinks(currentUrl);
       for (const link of newLinks) {
-        if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
-          allDiscoveredPages.add(link);
+        if (!discoveredPages.has(link) && discoveredPages.size < maxPages) {
+          discoveredPages.add(link);
           queue.push(link);
         }
       }
@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
     }
 
     // Extraction phase - parallel requests with limit
-    const pages = Array.from(allDiscoveredPages);
+    const pages = Array.from(discoveredPages);
     const parallelLimit = 5;
     
     for (let i = 0; i < pages.length; i += parallelLimit) {
