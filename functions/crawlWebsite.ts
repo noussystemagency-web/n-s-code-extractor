@@ -99,13 +99,21 @@ Deno.serve(async (req) => {
         const scriptUrls = [];
         while ((match = scriptRegex.exec(html)) !== null) {
           let scriptUrl = match[1];
-          if (scriptUrl.startsWith('/')) {
-            scriptUrl = baseUrlObj.origin + scriptUrl;
-          } else if (!scriptUrl.startsWith('http')) {
-            scriptUrl = new URL(scriptUrl, url).href;
+          // Handle relative URLs
+          try {
+            if (scriptUrl.startsWith('//')) {
+              scriptUrl = 'https:' + scriptUrl;
+            } else if (scriptUrl.startsWith('/')) {
+              scriptUrl = baseUrlObj.origin + scriptUrl;
+            } else if (!scriptUrl.startsWith('http')) {
+              scriptUrl = new URL(scriptUrl, url).href;
+            }
+            scriptUrls.push(scriptUrl);
+          } catch (e) {
+            console.error('Invalid script URL:', scriptUrl);
           }
-          scriptUrls.push(scriptUrl);
         }
+        console.log(`Extracted ${scriptUrls.length} scripts from HTML:`, scriptUrls);
         
         // Fetch ALL scripts in parallel for maximum route discovery
         console.log(`Found ${scriptUrls.length} script files to analyze`);
