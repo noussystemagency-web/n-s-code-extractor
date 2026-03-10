@@ -272,14 +272,29 @@ Only suggest routes that follow the same naming pattern. Be conservative - only 
       }
     };
 
-    // ULTRA SIMPLE: Only fetch homepage + extract routes from its JS
+    // Discovery: Homepage + one level of crawling
     const discoveredPages = new Set([baseUrl]);
     const homeLinks = await fetchAndExtractLinks(baseUrl);
     
-    // Add discovered links (limit to maxPages)
+    // Add all discovered links from homepage
     for (const link of homeLinks) {
       if (discoveredPages.size >= maxPages) break;
       discoveredPages.add(link);
+    }
+    
+    // Crawl first 5 discovered pages to find more routes (if we still need more)
+    if (discoveredPages.size < maxPages) {
+      const pagesToCrawl = Array.from(homeLinks).slice(0, 5);
+      for (const pageUrl of pagesToCrawl) {
+        if (discoveredPages.size >= maxPages) break;
+        const links = await fetchAndExtractLinks(pageUrl);
+        for (const link of links) {
+          if (discoveredPages.size >= maxPages) break;
+          if (!discoveredPages.has(link)) {
+            discoveredPages.add(link);
+          }
+        }
+      }
     }
 
     // Extraction phase - parallel requests with limit
