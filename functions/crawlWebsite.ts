@@ -74,12 +74,8 @@ Deno.serve(async (req) => {
             }
             
             const linkObj = new URL(href);
-            // Keep same domain/subdomain OR same root domain
-            const isSameDomain = linkObj.hostname === domain || 
-                                 linkObj.hostname.endsWith('.' + domain.replace('www.', '')) ||
-                                 domain.endsWith('.' + linkObj.hostname.replace('www.', ''));
-            if (isSameDomain) {
-              links.add(href);
+            if (linkObj.hostname === domain) {
+              links.add(linkObj.origin + linkObj.pathname);
             }
           } catch (e) {
             // Invalid URL, skip
