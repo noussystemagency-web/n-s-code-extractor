@@ -48,18 +48,10 @@ Deno.serve(async (req) => {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           },
-          redirect: 'manual', // Don't follow redirects to detect auth pages
+          redirect: 'follow',
         });
         
-        // Skip auth redirects (301/302 to login pages)
-        if (response.status >= 300 && response.status < 400) {
-          const location = response.headers.get('location');
-          if (location && (location.includes('login') || location.includes('auth') || location.includes('signin'))) {
-            return [];
-          }
-        }
-        
-        if (!response.ok && response.status !== 401 && response.status !== 403) return [];
+        if (!response.ok) return [];
 
         const html = await response.text();
         const links = new Set();
