@@ -16,7 +16,6 @@ Deno.serve(async (req) => {
 
     const baseUrlObj = new URL(baseUrl);
     const domain = baseUrlObj.hostname;
-    const discoveredPages = new Set();
     const extractedPages = [];
 
     // Helper to extract routes from JavaScript
