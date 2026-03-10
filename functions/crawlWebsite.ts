@@ -222,9 +222,7 @@ Deno.serve(async (req) => {
       const currentUrl = queue[crawlIndex];
       crawlIndex++;
       
-      console.log(`Crawling page ${crawlIndex}: ${currentUrl}`);
       const newLinks = await fetchAndExtractLinks(currentUrl);
-      console.log(`Found ${newLinks.length} new links from ${currentUrl}`);
       
       for (const link of newLinks) {
         if (!discoveredPages.has(link) && discoveredPages.size < maxPages) {
@@ -236,8 +234,6 @@ Deno.serve(async (req) => {
       // Limit crawl depth to prevent infinite loops
       if (crawlIndex > Math.min(maxPages, 20)) break;
     }
-    
-    console.log(`Discovery complete. Found ${discoveredPages.size} total pages`);
 
     // Extraction phase - parallel requests with limit
     const pages = Array.from(discoveredPages);
