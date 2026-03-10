@@ -48,15 +48,23 @@ Deno.serve(async (req) => {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           },
-          redirect: 'follow',
+          redirect: 'manual', // Don't follow redirects to detect auth pages
         });
         
-        if (!response.ok) return [];
+        // Skip auth redirects (301/302 to login pages)
+        if (response.status >= 300 && response.status < 400) {
+          const location = response.headers.get('location');
+          if (location && (location.includes('login') || location.includes('auth') || location.includes('signin'))) {
+            return [];
+          }
+        }
+        
+        if (!response.ok && response.status !== 401 && response.status !== 403) return [];
 
         const html = await response.text();
         const links = new Set();
         
-        // Extract links from <a> tags
+        // Extract links from <a> tags only
         const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>/gi;
         let match;
         while ((match = linkRegex.exec(html)) !== null) {
@@ -208,10 +216,19 @@ Deno.serve(async (req) => {
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
               'Accept-Language': 'en-US,en;q=0.9',
             },
-            redirect: 'follow',
+            redirect: 'manual', // Detect auth redirects
           });
           
-          if (!response.ok) return null;
+          // Skip pages that redirect to login
+          if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (location && (location.includes('login') || location.includes('auth') || location.includes('signin'))) {
+              console.log(`Skipping auth-protected page: ${pageUrl}`);
+              return null;
+            }
+          }
+          
+          if (!response.ok && response.status !== 401 && response.status !== 403) return null;
           
           let html = await response.text();
           
