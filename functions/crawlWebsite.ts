@@ -272,40 +272,15 @@ Only suggest routes that follow the same naming pattern. Be conservative - only 
       }
     };
 
-    // Discovery phase: aggressive crawling
-    const discoveredPages = new Set();
-    const queue = [baseUrl];
-    discoveredPages.add(baseUrl);
+    // ULTRA SIMPLE: Only fetch homepage + extract routes from its JS
+    const discoveredPages = new Set([baseUrl]);
+    const homeLinks = await fetchAndExtractLinks(baseUrl);
     
-    // 1. Try sitemap first (fastest)
-    const sitemapUrls = await fetchSitemap();
-    for (const url of sitemapUrls) {
-      if (discoveredPages.size < maxPages && !discoveredPages.has(url)) {
-        discoveredPages.add(url);
-        queue.push(url);
-      }
+    // Add discovered links (limit to maxPages)
+    for (const link of homeLinks) {
+      if (discoveredPages.size >= maxPages) break;
+      discoveredPages.add(link);
     }
-    
-    // 2. Crawl pages breadth-first until we hit maxPages
-    let crawlIndex = 0;
-    while (crawlIndex < queue.length && discoveredPages.size < maxPages) {
-      const currentUrl = queue[crawlIndex];
-      crawlIndex++;
-      
-      const newLinks = await fetchAndExtractLinks(currentUrl);
-      
-      for (const link of newLinks) {
-        if (!discoveredPages.has(link) && discoveredPages.size < maxPages) {
-          discoveredPages.add(link);
-          queue.push(link);
-        }
-      }
-      
-      // Limit crawl depth to prevent infinite loops
-      if (crawlIndex > Math.min(maxPages, 20)) break;
-    }
-    
-    // Skip AI enhancement to save CPU time - rely on trojan horse detection
 
     // Extraction phase - parallel requests with limit
     const pages = Array.from(discoveredPages);
