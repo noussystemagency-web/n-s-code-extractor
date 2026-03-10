@@ -110,12 +110,14 @@ Deno.serve(async (req) => {
           }
         }
         
-        // Extract ALL script tags for deep route analysis
+        // Extract script tags for route analysis (limit to main app bundles)
         const scriptRegex = /<script[^>]*src=["']([^"']+)["']/gi;
         const scriptUrls = [];
         while ((match = scriptRegex.exec(html)) !== null) {
           let scriptUrl = match[1];
-          // Handle relative URLs
+          // Skip external CDNs and focus on app bundles
+          if (scriptUrl.includes('google') || scriptUrl.includes('cdn.') || scriptUrl.includes('analytics')) continue;
+          
           try {
             if (scriptUrl.startsWith('//')) {
               scriptUrl = 'https:' + scriptUrl;
@@ -124,13 +126,17 @@ Deno.serve(async (req) => {
             } else if (!scriptUrl.startsWith('http')) {
               scriptUrl = new URL(scriptUrl, url).href;
             }
-            scriptUrls.push(scriptUrl);
+            // Only scripts from same domain
+            const scriptUrlObj = new URL(scriptUrl);
+            if (scriptUrlObj.hostname === domain) {
+              scriptUrls.push(scriptUrl);
+            }
           } catch (e) {
             // Invalid script URL
           }
         }
         
-        // Fetch ALL scripts in parallel for maximum route discovery
+        // Fetch app scripts in parallel for route discovery (limit to 5 largest)
         const scriptPromises = scriptUrls.map(async (scriptUrl) => {
           try {
             const scriptRes = await fetch(scriptUrl, { 
