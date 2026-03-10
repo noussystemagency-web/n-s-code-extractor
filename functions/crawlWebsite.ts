@@ -227,10 +227,19 @@ Deno.serve(async (req) => {
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
               'Accept-Language': 'en-US,en;q=0.9',
             },
-            redirect: 'follow',
+            redirect: 'manual', // Detect auth redirects
           });
           
-          if (!response.ok) return null;
+          // Skip pages that redirect to login
+          if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (location && (location.includes('login') || location.includes('auth') || location.includes('signin'))) {
+              console.log(`Skipping auth-protected page: ${pageUrl}`);
+              return null;
+            }
+          }
+          
+          if (!response.ok && response.status !== 401 && response.status !== 403) return null;
           
           let html = await response.text();
           
