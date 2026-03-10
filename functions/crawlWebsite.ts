@@ -206,7 +206,6 @@ Deno.serve(async (req) => {
     const discoveredPages = new Set();
     const queue = [baseUrl];
     discoveredPages.add(baseUrl);
-    console.log('Starting discovery from:', baseUrl);
     
     // 1. Try sitemap first (fastest)
     const sitemapUrls = await fetchSitemap();
