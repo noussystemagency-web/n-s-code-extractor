@@ -224,6 +224,20 @@ Deno.serve(async (req) => {
     
     console.log(`Discovery complete. Found ${discoveredPages.size} total pages`);
 
+    // DEBUG: Return discovered pages before extraction
+    if (discoveredPages.size === 1) {
+      return Response.json({
+        success: false,
+        error: 'DEBUG: Only 1 page discovered',
+        debug: {
+          baseUrl,
+          discoveredPages: Array.from(discoveredPages),
+          sitemapCount: sitemapUrls.length,
+          queueLength: queue.length,
+        }
+      });
+    }
+
     // Extraction phase - parallel requests with limit
     const pages = Array.from(discoveredPages);
     const parallelLimit = 5;
