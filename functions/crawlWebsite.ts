@@ -126,13 +126,11 @@ Deno.serve(async (req) => {
             }
             scriptUrls.push(scriptUrl);
           } catch (e) {
-            console.error('Invalid script URL:', scriptUrl);
+            // Invalid script URL
           }
         }
-        console.log(`Extracted ${scriptUrls.length} scripts from HTML:`, scriptUrls);
         
         // Fetch ALL scripts in parallel for maximum route discovery
-        console.log(`Found ${scriptUrls.length} script files to analyze`);
         const scriptPromises = scriptUrls.map(async (scriptUrl) => {
           try {
             const scriptRes = await fetch(scriptUrl, { 
@@ -141,12 +139,10 @@ Deno.serve(async (req) => {
             });
             if (scriptRes.ok) {
               const scriptCode = await scriptRes.text();
-              const foundRoutes = extractRoutesFromJS(scriptCode);
-              console.log(`Script ${scriptUrl.split('/').pop()} found ${foundRoutes.length} routes`);
-              return foundRoutes;
+              return extractRoutesFromJS(scriptCode);
             }
           } catch (e) {
-            console.error(`Failed to fetch script ${scriptUrl}:`, e.message);
+            // Skip failed scripts
           }
           return [];
         });
@@ -157,7 +153,6 @@ Deno.serve(async (req) => {
             links.add(baseUrlObj.origin + route);
           }
         }
-        console.log(`Total links discovered: ${links.size}`);
         
         return Array.from(links);
       } catch (e) {
