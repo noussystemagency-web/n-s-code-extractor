@@ -18,15 +18,19 @@ Deno.serve(async (req) => {
     const domain = baseUrlObj.hostname;
     const extractedPages = [];
 
-    // Helper to extract routes from JavaScript
+    // Helper to extract routes from JavaScript - AGGRESSIVE
     const extractRoutesFromJS = (jsCode) => {
-      const routes = [];
+      const routes = new Set();
       const patterns = [
         /path:\s*["']([^"']+)["']/g,
         /route\(["']([^"']+)["']\)/g,
-        /<Route path=["']([^"']+)["']/g,
+        /<Route[^>]*path=["']([^"']+)["']/g,
+        /to=["']\/([^"']*?)["']/g,
         /href=["']\/([^"'\/][^"']*?)["']/g,
         /"pathname":\s*["']([^"']+)["']/g,
+        /"path":\s*["']([^"']+)["']/g,
+        /navigate\(["']([^"']+)["']\)/g,
+        /createPageUrl\(["']([^"']+)["']\)/g,
       ];
       
       for (const pattern of patterns) {
@@ -34,10 +38,12 @@ Deno.serve(async (req) => {
         while ((match = pattern.exec(jsCode)) !== null) {
           let route = match[1];
           if (!route.startsWith('/')) route = '/' + route;
-          routes.push(route);
+          if (!route.includes('*') && !route.includes(':')) {
+            routes.add(route);
+          }
         }
       }
-      return routes;
+      return Array.from(routes);
     };
 
     // Helper to fetch and extract links from HTML
