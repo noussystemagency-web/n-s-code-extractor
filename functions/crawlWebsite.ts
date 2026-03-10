@@ -86,11 +86,6 @@ Deno.serve(async (req) => {
         while ((match = navJsonRegex.exec(html)) !== null) {
           const path = match[1];
           if (path.startsWith('/') && !path.startsWith('//')) {
-            // Skip auth routes
-            if (path.includes('/login') || path.includes('/signin') || path.includes('/auth') || 
-                path.includes('/logout') || path.includes('/register') || path.includes('/signup')) {
-              continue;
-            }
             links.add(baseUrlObj.origin + path);
           }
         }
