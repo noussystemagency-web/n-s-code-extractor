@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { baseUrl, maxPages = 30, render_spa = false } = await req.json();
+    const { baseUrl, maxPages = 50, render_spa = false } = await req.json();
 
     if (!baseUrl) {
       return Response.json({ error: 'Base URL is required' }, { status: 400 });
