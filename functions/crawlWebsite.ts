@@ -202,6 +202,38 @@ Deno.serve(async (req) => {
       return Array.from(allUrls);
     };
 
+    // AI-enhanced route discovery
+    const enhanceRoutesWithAI = async (discoveredRoutes) => {
+      try {
+        const routesList = Array.from(discoveredRoutes).map(url => new URL(url).pathname);
+        const response = await base44.integrations.Core.InvokeLLM({
+          prompt: `Given these discovered routes from a website: ${routesList.join(', ')}
+          
+Analyze the patterns and suggest additional likely routes that might exist but weren't discovered.
+Consider:
+- Common CRUD patterns (list, view, edit, create)
+- Admin/settings pages
+- Profile/account pages
+- Common SPA route structures
+
+Only suggest routes that follow the same naming pattern. Be conservative - only high-probability routes.`,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              suggested_routes: {
+                type: "array",
+                items: { type: "string" }
+              }
+            }
+          }
+        });
+        
+        return response.suggested_routes || [];
+      } catch (e) {
+        return [];
+      }
+    };
+
     // Discovery phase: aggressive crawling
     const discoveredPages = new Set();
     const queue = [baseUrl];
@@ -233,6 +265,30 @@ Deno.serve(async (req) => {
       
       // Limit crawl depth to prevent infinite loops
       if (crawlIndex > Math.min(maxPages, 20)) break;
+    }
+    
+    // AI enhancement: suggest additional routes
+    if (discoveredPages.size < maxPages) {
+      const aiSuggested = await enhanceRoutesWithAI(discoveredPages);
+      for (const route of aiSuggested) {
+        const fullUrl = baseUrlObj.origin + (route.startsWith('/') ? route : '/' + route);
+        if (!discoveredPages.has(fullUrl) && discoveredPages.size < maxPages) {
+          // Verify the route exists before adding
+          try {
+            const testRes = await fetch(fullUrl, { 
+              method: 'HEAD',
+              headers: { 'User-Agent': 'Mozilla/5.0' },
+              redirect: 'follow'
+            });
+            if (testRes.ok) {
+              discoveredPages.add(fullUrl);
+              queue.push(fullUrl);
+            }
+          } catch (e) {
+            // Route doesn't exist, skip
+          }
+        }
+      }
     }
 
     // Extraction phase - parallel requests with limit
