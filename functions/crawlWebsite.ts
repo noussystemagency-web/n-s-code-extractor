@@ -48,15 +48,13 @@ Deno.serve(async (req) => {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           },
-          redirect: 'follow',
+          redirect: 'manual',
         });
         
-        if (!response.ok) return [];
-
         const html = await response.text();
         const links = new Set();
         
-        // Extract links from <a> tags only
+        // Extract links from <a> tags
         const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>/gi;
         let match;
         while ((match = linkRegex.exec(html)) !== null) {
@@ -82,7 +80,7 @@ Deno.serve(async (req) => {
         }
         
         // Extract from navigation JSON (for SPAs)
-        const navJsonRegex = /"(?:url|path|href|route)":\s*"([^"]+)"/gi;
+        const navJsonRegex = /"(?:url|path|href|route|to)":\s*"([^"]+)"/gi;
         while ((match = navJsonRegex.exec(html)) !== null) {
           const path = match[1];
           if (path.startsWith('/') && !path.startsWith('//')) {
@@ -90,10 +88,10 @@ Deno.serve(async (req) => {
           }
         }
         
-        // Extract script tags and fetch them for route analysis (limit to 3)
+        // Extract ALL script tags for deep route analysis
         const scriptRegex = /<script[^>]*src=["']([^"']+)["']/gi;
         const scriptUrls = [];
-        while ((match = scriptRegex.exec(html)) !== null && scriptUrls.length < 3) {
+        while ((match = scriptRegex.exec(html)) !== null) {
           let scriptUrl = match[1];
           if (scriptUrl.startsWith('/')) {
             scriptUrl = baseUrlObj.origin + scriptUrl;
@@ -103,23 +101,31 @@ Deno.serve(async (req) => {
           scriptUrls.push(scriptUrl);
         }
         
-        for (const scriptUrl of scriptUrls) {
+        // Fetch ALL scripts in parallel for maximum route discovery
+        const scriptPromises = scriptUrls.map(async (scriptUrl) => {
           try {
-            const scriptRes = await fetch(scriptUrl);
+            const scriptRes = await fetch(scriptUrl, { 
+              headers: { 'User-Agent': 'Mozilla/5.0' },
+              redirect: 'follow'
+            });
             if (scriptRes.ok) {
               const scriptCode = await scriptRes.text();
-              const routes = extractRoutesFromJS(scriptCode);
-              for (const route of routes) {
-                const routeUrl = baseUrlObj.origin + route;
-                links.add(routeUrl);
-              }
+              return extractRoutesFromJS(scriptCode);
             }
           } catch (e) {
-            // Skip if script fetch fails
+            // Skip failed scripts
+          }
+          return [];
+        });
+        
+        const allRoutes = await Promise.all(scriptPromises);
+        for (const routes of allRoutes) {
+          for (const route of routes) {
+            links.add(baseUrlObj.origin + route);
           }
         }
         
-        return Array.from(links).slice(0, 100);
+        return Array.from(links);
       } catch (e) {
         console.error(`Error fetching ${url}:`, e.message);
         return [];
