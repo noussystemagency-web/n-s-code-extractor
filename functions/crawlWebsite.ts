@@ -163,38 +163,36 @@ Deno.serve(async (req) => {
       return Array.from(allUrls);
     };
 
-    // Discovery phase: combine multiple sources
+    // Discovery phase: aggressive crawling
     const allDiscoveredPages = new Set();
+    const queue = [baseUrl];
     allDiscoveredPages.add(baseUrl);
     
-    // 1. Try to fetch sitemap first (faster)
+    // 1. Try sitemap first (fastest)
     const sitemapUrls = await fetchSitemap();
     for (const url of sitemapUrls) {
-      if (allDiscoveredPages.size < maxPages) {
+      if (allDiscoveredPages.size < maxPages && !allDiscoveredPages.has(url)) {
         allDiscoveredPages.add(url);
+        queue.push(url);
       }
     }
     
-    // 2. Extract from main page if still need more
-    if (allDiscoveredPages.size < maxPages) {
-      const newLinks = await fetchAndExtractLinks(baseUrl);
+    // 2. Crawl pages breadth-first until we hit maxPages
+    let crawlIndex = 0;
+    while (crawlIndex < queue.length && allDiscoveredPages.size < maxPages) {
+      const currentUrl = queue[crawlIndex];
+      crawlIndex++;
+      
+      const newLinks = await fetchAndExtractLinks(currentUrl);
       for (const link of newLinks) {
         if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
           allDiscoveredPages.add(link);
+          queue.push(link);
         }
       }
-    }
-    
-    // 3. Crawl discovered pages to find more links (breadth-first)
-    const pagesToCrawl = Array.from(allDiscoveredPages).slice(1, 5); // Skip base, crawl next 4
-    for (const pageUrl of pagesToCrawl) {
-      if (allDiscoveredPages.size >= maxPages) break;
-      const newLinks = await fetchAndExtractLinks(pageUrl);
-      for (const link of newLinks) {
-        if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
-          allDiscoveredPages.add(link);
-        }
-      }
+      
+      // Limit crawl depth to prevent infinite loops
+      if (crawlIndex > Math.min(maxPages, 20)) break;
     }
 
     // Extraction phase - parallel requests with limit
