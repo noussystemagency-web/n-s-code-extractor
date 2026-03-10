@@ -315,7 +315,15 @@ export default function Extractor() {
       }
     } catch (err) {
       console.error('Crawl error:', err);
-      toast.error('Error: ' + (err.message || 'No se pudo extraer'));
+      
+      // Better error messages
+      if (err.message?.includes('502') || err.message?.includes('TIME_LIMIT')) {
+        toast.error('⏱️ Timeout: El sitio es muy grande. Intenta reducir páginas o usa extracción simple.', { duration: 6000 });
+      } else if (err.message?.includes('500')) {
+        toast.error('Error del servidor. Reintenta en unos segundos.', { duration: 4000 });
+      } else {
+        toast.error('Error: ' + (err.message || 'No se pudo extraer'));
+      }
     } finally {
       setIsCrawling(false);
     }
