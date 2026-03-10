@@ -286,6 +286,7 @@ export default function Extractor() {
     setIsCrawling(true);
     setCrawlProgress([]);
     setSiteData(null);
+    setExtractedData(null);
     toast.info('Descubriendo y extrayendo páginas...');
 
     try {
@@ -296,19 +297,24 @@ export default function Extractor() {
       });
 
       if (response.data?.success) {
+        const siteResult = response.data.data;
+        
         // Create progress items
-        const pages = response.data.data.pages.map(p => ({
+        const pages = siteResult.pages.map(p => ({
           ...p,
           status: 'completed'
         }));
         
         setCrawlProgress(pages);
-        setSiteData(response.data.data);
-        toast.success(`✅ ${response.data.data.totalPages} páginas extraídas`);
+        setSiteData(siteResult);
+        toast.success(`✅ ${siteResult.totalPages} páginas extraídas`);
+        
+        console.log('Site data set:', siteResult);
       } else {
         toast.error(response.data?.error || 'Error en la extracción');
       }
     } catch (err) {
+      console.error('Crawl error:', err);
       toast.error('Error: ' + (err.message || 'No se pudo extraer'));
     } finally {
       setIsCrawling(false);
