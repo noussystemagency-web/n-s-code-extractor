@@ -47,7 +47,9 @@ Deno.serve(async (req) => {
         const response = await fetch(url, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          }
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+          redirect: 'follow',
         });
         
         if (!response.ok) return [];
@@ -55,35 +57,54 @@ Deno.serve(async (req) => {
         const html = await response.text();
         const links = new Set();
         
-        // Extract links from HTML href attributes
-        const linkRegex = /href=["']([^"']+)["']/gi;
+        // Extract links from <a> tags only
+        const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>/gi;
         let match;
         while ((match = linkRegex.exec(html)) !== null) {
           let href = match[1];
-          if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) continue;
+          if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) continue;
           
-          if (href.startsWith('/')) {
-            href = baseUrlObj.origin + href;
-          } else if (!href.startsWith('http')) {
-            href = new URL(href, url).href;
-          }
-          
-          const linkObj = new URL(href);
-          if (linkObj.hostname === domain) {
-            links.add(linkObj.origin + linkObj.pathname);
+          try {
+            if (href.startsWith('//')) {
+              href = 'https:' + href;
+            } else if (href.startsWith('/')) {
+              href = baseUrlObj.origin + href;
+            } else if (!href.startsWith('http')) {
+              href = new URL(href, url).href;
+            }
+            
+            const linkObj = new URL(href);
+            if (linkObj.hostname === domain) {
+              links.add(linkObj.origin + linkObj.pathname);
+            }
+          } catch (e) {
+            // Invalid URL, skip
           }
         }
         
-        // Extract script tags and fetch them for route analysis
+        // Extract from navigation JSON (for SPAs)
+        const navJsonRegex = /"(?:url|path|href|route)":\s*"([^"]+)"/gi;
+        while ((match = navJsonRegex.exec(html)) !== null) {
+          const path = match[1];
+          if (path.startsWith('/') && !path.startsWith('//')) {
+            links.add(baseUrlObj.origin + path);
+          }
+        }
+        
+        // Extract script tags and fetch them for route analysis (limit to 3)
         const scriptRegex = /<script[^>]*src=["']([^"']+)["']/gi;
-        while ((match = scriptRegex.exec(html)) !== null) {
+        const scriptUrls = [];
+        while ((match = scriptRegex.exec(html)) !== null && scriptUrls.length < 3) {
           let scriptUrl = match[1];
           if (scriptUrl.startsWith('/')) {
             scriptUrl = baseUrlObj.origin + scriptUrl;
           } else if (!scriptUrl.startsWith('http')) {
             scriptUrl = new URL(scriptUrl, url).href;
           }
-          
+          scriptUrls.push(scriptUrl);
+        }
+        
+        for (const scriptUrl of scriptUrls) {
           try {
             const scriptRes = await fetch(scriptUrl);
             if (scriptRes.ok) {
@@ -99,7 +120,7 @@ Deno.serve(async (req) => {
           }
         }
         
-        return Array.from(links);
+        return Array.from(links).slice(0, 100);
       } catch (e) {
         console.error(`Error fetching ${url}:`, e.message);
         return [];
@@ -108,26 +129,38 @@ Deno.serve(async (req) => {
 
     // Helper to fetch sitemap
     const fetchSitemap = async () => {
-      try {
-        const sitemapUrl = baseUrlObj.origin + '/sitemap.xml';
-        const response = await fetch(sitemapUrl);
-        if (!response.ok) return [];
-        
-        const xml = await response.text();
-        const urlRegex = /<loc>([^<]+)<\/loc>/g;
-        const urls = [];
-        let match;
-        while ((match = urlRegex.exec(xml)) !== null) {
-          const url = match[1];
-          const urlObj = new URL(url);
-          if (urlObj.hostname === domain) {
-            urls.push(url);
+      const sitemapUrls = [
+        '/sitemap.xml', 
+        '/sitemap_index.xml',
+        '/sitemap-0.xml',
+      ];
+      
+      const allUrls = new Set();
+      
+      for (const path of sitemapUrls) {
+        try {
+          const sitemapUrl = baseUrlObj.origin + path;
+          const response = await fetch(sitemapUrl, { redirect: 'follow' });
+          if (!response.ok) continue;
+          
+          const xml = await response.text();
+          const urlRegex = /<loc>([^<]+)<\/loc>/g;
+          let match;
+          while ((match = urlRegex.exec(xml)) !== null) {
+            const url = match[1];
+            try {
+              const urlObj = new URL(url);
+              if (urlObj.hostname === domain) {
+                allUrls.add(url);
+              }
+            } catch (e) {}
           }
+        } catch (e) {
+          continue;
         }
-        return urls;
-      } catch (e) {
-        return [];
       }
+      
+      return Array.from(allUrls);
     };
 
     // Discovery phase: combine multiple sources
