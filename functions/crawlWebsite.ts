@@ -18,29 +18,45 @@ Deno.serve(async (req) => {
     const domain = baseUrlObj.hostname;
     const extractedPages = [];
 
-    // Helper to extract routes from JavaScript - AGGRESSIVE
+    // Helper to extract routes from JavaScript - MEGA AGGRESSIVE
     const extractRoutesFromJS = (jsCode) => {
       const routes = new Set();
       const patterns = [
+        // React Router patterns
         /path:\s*["']([^"']+)["']/g,
-        /route\(["']([^"']+)["']\)/g,
         /<Route[^>]*path=["']([^"']+)["']/g,
-        /to=["']\/([^"']*?)["']/g,
-        /href=["']\/([^"'\/][^"']*?)["']/g,
-        /"pathname":\s*["']([^"']+)["']/g,
-        /"path":\s*["']([^"']+)["']/g,
-        /navigate\(["']([^"']+)["']\)/g,
-        /createPageUrl\(["']([^"']+)["']\)/g,
+        
+        // Navigation patterns
+        /to=["']\/([^"'?#]*)/g,
+        /href=["']\/([^"'?#]*)/g,
+        /navigate\(["']\/([^"'?#]*)/g,
+        /createPageUrl\(["']([^"'?#]*)/g,
+        /push\(["']\/([^"'?#]*)/g,
+        /replace\(["']\/([^"'?#]*)/g,
+        
+        // Base44 specific
+        /pages\/([A-Z][a-zA-Z0-9_]*)/g,
+        
+        // JSON path patterns
+        /"pathname":\s*["']\/([^"'?#]*)/g,
+        /"path":\s*["']\/([^"'?#]*)/g,
+        /"url":\s*["']\/([^"'?#]*)/g,
+        /"route":\s*["']\/([^"'?#]*)/g,
       ];
       
       for (const pattern of patterns) {
         let match;
         while ((match = pattern.exec(jsCode)) !== null) {
           let route = match[1];
+          // Clean up the route
           if (!route.startsWith('/')) route = '/' + route;
-          if (!route.includes('*') && !route.includes(':')) {
-            routes.add(route);
-          }
+          // Skip dynamic routes and invalid routes
+          if (route.includes('*') || route.includes(':') || route.includes('${') || route.length > 100) continue;
+          // Skip code fragments
+          if (route.includes(';') || route.includes('(') || route.includes(')') || route.includes('{')) continue;
+          // Must be alphanumeric + slashes + dashes + underscores only
+          if (!/^\/[a-zA-Z0-9\/_-]*$/.test(route)) continue;
+          routes.add(route);
         }
       }
       return Array.from(routes);
