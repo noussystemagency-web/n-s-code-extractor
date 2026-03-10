@@ -64,12 +64,18 @@ Deno.serve(async (req) => {
         const html = await response.text();
         const links = new Set();
         
-        // Extract links from <a> tags only
+        // Extract links from <a> tags
         const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>/gi;
         let match;
         while ((match = linkRegex.exec(html)) !== null) {
           let href = match[1];
           if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) continue;
+          
+          // Skip common auth/login URLs
+          if (href.includes('/login') || href.includes('/signin') || href.includes('/auth') || 
+              href.includes('/logout') || href.includes('/register') || href.includes('/signup')) {
+            continue;
+          }
           
           try {
             if (href.startsWith('//')) {
