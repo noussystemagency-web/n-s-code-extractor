@@ -18,29 +18,71 @@ Deno.serve(async (req) => {
     const domain = baseUrlObj.hostname;
     const extractedPages = [];
 
-    // Helper to extract routes from JavaScript - ULTRA AGGRESSIVE
+    // Helper to extract routes from JavaScript - ULTRA AGGRESSIVE + TROJAN INJECTION
     const extractRoutesFromJS = (jsCode) => {
       const routes = new Set();
       
-      // Base44 specific: find page names (e.g., createPageUrl("Dashboard"))
-      const base44PagePattern = /["']([A-Z][a-zA-Z0-9_]{2,30})["']/g;
+      // TROJAN HORSE: Detect React Router or Base44 routing config
+      // Look for the router configuration object itself
+      const routerConfigPattern = /routes?\s*[:=]\s*\[([^\]]+)\]/gi;
       let match;
-      while ((match = base44PagePattern.exec(jsCode)) !== null) {
+      while ((match = routerConfigPattern.exec(jsCode)) !== null) {
+        const configBlock = match[1];
+        // Extract all strings that look like paths
+        const pathsInConfig = configBlock.match(/["']\/[a-zA-Z0-9\/_-]*["']/g) || [];
+        for (const p of pathsInConfig) {
+          const cleaned = p.replace(/["']/g, '');
+          if (cleaned.length > 1 && cleaned.length < 100) {
+            routes.add(cleaned);
+          }
+        }
+      }
+      
+      // TROJAN: Detect page name exports (Base44 pattern: export default function PageName)
+      const exportPattern = /export\s+default\s+function\s+([A-Z][a-zA-Z0-9_]{2,30})/g;
+      while ((match = exportPattern.exec(jsCode)) !== null) {
         const pageName = match[1];
-        // Common Base44 page names
-        if (pageName.length >= 3 && pageName.length <= 30 && /^[A-Z]/.test(pageName)) {
+        if (!pageName.includes('App') && !pageName.includes('Layout') && !pageName.includes('Provider')) {
           routes.add('/' + pageName);
         }
       }
       
-      // Standard route patterns
+      // TROJAN: Look for lazy imports (React.lazy or import() statements)
+      const lazyPattern = /import\s*\(\s*["'].*?\/([A-Z][a-zA-Z0-9_]{2,30})["']\s*\)/g;
+      while ((match = lazyPattern.exec(jsCode)) !== null) {
+        routes.add('/' + match[1]);
+      }
+      
+      // Base44 specific: find page names in createPageUrl calls
+      const base44PagePattern = /createPageUrl\s*\(\s*["']([A-Z][a-zA-Z0-9_]{2,30})["']/g;
+      while ((match = base44PagePattern.exec(jsCode)) !== null) {
+        routes.add('/' + match[1]);
+      }
+      
+      // TROJAN: Detect navigation object/array definitions
+      const navPattern = /(?:nav|menu|sidebar|links)\s*[:=]\s*\[[^\]]{0,2000}\]/gi;
+      while ((match = navPattern.exec(jsCode)) !== null) {
+        const navBlock = match[0];
+        const pathsInNav = navBlock.match(/(?:path|to|href|url)\s*:\s*["']([^"']+)["']/g) || [];
+        for (const p of pathsInNav) {
+          const pathMatch = p.match(/["']([^"']+)["']/);
+          if (pathMatch) {
+            let route = pathMatch[1];
+            if (!route.startsWith('/')) route = '/' + route;
+            if (route.length > 1 && route.length < 100 && /^\/[a-zA-Z0-9\/_-]*$/.test(route)) {
+              routes.add(route);
+            }
+          }
+        }
+      }
+      
+      // Standard route patterns (existing logic)
       const patterns = [
         /path:\s*["']([^"']+)["']/g,
         /<Route[^>]*path=["']([^"']+)["']/g,
         /to=["']\/([^"'?#]*)/g,
         /href=["']\/([^"'?#]*)/g,
         /navigate\(["']\/([^"'?#]*)/g,
-        /createPageUrl\(["']([^"'?#]*)/g,
         /push\(["']\/([^"'?#]*)/g,
         /"pathname":\s*["']\/([^"'?#]*)/g,
         /"path":\s*["']\/([^"'?#]*)/g,
