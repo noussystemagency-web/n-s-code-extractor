@@ -267,26 +267,15 @@ Only suggest routes that follow the same naming pattern. Be conservative - only 
       if (crawlIndex > Math.min(maxPages, 20)) break;
     }
     
-    // AI enhancement: suggest additional routes
-    if (discoveredPages.size < maxPages) {
+    // AI enhancement: suggest additional routes (only if we found few pages)
+    if (discoveredPages.size < 10) {
       const aiSuggested = await enhanceRoutesWithAI(discoveredPages);
       for (const route of aiSuggested) {
+        if (discoveredPages.size >= maxPages) break;
         const fullUrl = baseUrlObj.origin + (route.startsWith('/') ? route : '/' + route);
-        if (!discoveredPages.has(fullUrl) && discoveredPages.size < maxPages) {
-          // Verify the route exists before adding
-          try {
-            const testRes = await fetch(fullUrl, { 
-              method: 'HEAD',
-              headers: { 'User-Agent': 'Mozilla/5.0' },
-              redirect: 'follow'
-            });
-            if (testRes.ok) {
-              discoveredPages.add(fullUrl);
-              queue.push(fullUrl);
-            }
-          } catch (e) {
-            // Route doesn't exist, skip
-          }
+        if (!discoveredPages.has(fullUrl)) {
+          discoveredPages.add(fullUrl);
+          queue.push(fullUrl);
         }
       }
     }
