@@ -184,6 +184,18 @@ Deno.serve(async (req) => {
         }
       }
     }
+    
+    // 3. Crawl discovered pages to find more links (breadth-first)
+    const pagesToCrawl = Array.from(allDiscoveredPages).slice(1, 5); // Skip base, crawl next 4
+    for (const pageUrl of pagesToCrawl) {
+      if (allDiscoveredPages.size >= maxPages) break;
+      const newLinks = await fetchAndExtractLinks(pageUrl);
+      for (const link of newLinks) {
+        if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
+          allDiscoveredPages.add(link);
+        }
+      }
+    }
 
     // Extraction phase - parallel requests with limit
     const pages = Array.from(allDiscoveredPages);
