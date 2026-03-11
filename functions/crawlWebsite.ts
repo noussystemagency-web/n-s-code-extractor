@@ -76,6 +76,8 @@ Deno.serve(async (req) => {
     // Helper to extract links from rendered HTML
     const extractLinksFromHTML = (html, pageUrl) => {
       const links = new Set();
+      
+      // Extract from href attributes
       const linkRegex = /href=["']([^"']+)["']/gi;
       let match;
       
@@ -90,6 +92,24 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           // Invalid URL
+        }
+      }
+      
+      // Extract from React Router data-* attributes and navigation elements
+      const reactLinkRegex = /(?:to|data-to|data-path)=["']([^"']+)["']/gi;
+      while ((match = reactLinkRegex.exec(html)) !== null) {
+        let path = match[1];
+        if (path.startsWith('/')) {
+          links.add(baseUrlObj.origin + path);
+        }
+      }
+      
+      // Extract from onclick handlers with navigation
+      const onclickRegex = /(?:navigate|push|replace)\(["']([^"']+)["']\)/gi;
+      while ((match = onclickRegex.exec(html)) !== null) {
+        let path = match[1];
+        if (path.startsWith('/')) {
+          links.add(baseUrlObj.origin + path);
         }
       }
       
@@ -134,11 +154,24 @@ Deno.serve(async (req) => {
     // Discovery phase: combine multiple sources
     const allDiscoveredPages = new Set();
     
-    // 1. Extract from main page and follow links
-    let queue = [baseUrl];
+    // 1. Render main page first to discover SPA routes
+    console.log('Rendering main page to discover routes...');
+    const mainPageHtml = await renderPage(baseUrl);
+    allDiscoveredPages.add(baseUrl);
+    
+    // Extract all links from rendered main page (including sidebar menu)
+    const mainPageLinks = extractLinksFromHTML(mainPageHtml, baseUrl);
+    console.log(`Found ${mainPageLinks.length} links in main page`);
+    
+    // Add discovered links to queue
+    let queue = [...mainPageLinks];
+    
+    // 2. Crawl discovered pages
     while (queue.length > 0 && allDiscoveredPages.size < maxPages) {
       const url = queue.shift();
       if (allDiscoveredPages.has(url)) continue;
+      
+      console.log(`Crawling: ${url}`);
       allDiscoveredPages.add(url);
       
       const newLinks = await fetchAndExtractLinks(url);
@@ -149,7 +182,7 @@ Deno.serve(async (req) => {
       }
     }
     
-    // 2. Try to fetch sitemap
+    // 3. Try to fetch sitemap
     const sitemapUrls = await fetchSitemap();
     for (const url of sitemapUrls) {
       if (allDiscoveredPages.size < maxPages) {
