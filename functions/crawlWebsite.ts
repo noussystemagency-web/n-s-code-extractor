@@ -35,7 +35,11 @@ Deno.serve(async (req) => {
       });
 
       if (cookies) {
-        params.append('cookies', cookies);
+        // Parse cookies and format for ScrapingBee
+        const cookieParams = cookies.split(';').map(c => c.trim()).filter(c => c);
+        cookieParams.forEach(cookie => {
+          params.append('cookies', cookie);
+        });
       }
 
       const response = await fetch(`https://app.scrapingbee.com/api/v1/?${params.toString()}`);
