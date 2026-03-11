@@ -24,12 +24,14 @@ import SiteExtractionProgress from '../components/extractor/SiteExtractionProgre
 import FullSitePreview from '../components/extractor/FullSitePreview';
 import AICodeGenerator from '../components/extractor/AICodeGenerator';
 import AICodeManipulation from '../components/extractor/AICodeManipulation';
+import CookieManager from '../components/extractor/CookieManager';
 
 export default function Extractor() {
   const [mode, setMode] = useState('full_page');
   const [extractedData, setExtractedData] = useState(null);
   const [screenshotUrl, setScreenshotUrl] = useState(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [sessionCookies, setSessionCookies] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [promptData, setPromptData] = useState(null);
@@ -293,6 +295,7 @@ export default function Extractor() {
         baseUrl: url,
         maxPages: 20,
         render_spa: options.render_spa,
+        cookies: sessionCookies,
       });
 
       if (response.data?.success) {
@@ -532,6 +535,7 @@ export default function Extractor() {
               options={optimizationOptions}
               setOptions={setOptimizationOptions}
             />
+            <CookieManager cookies={sessionCookies} setCookies={setSessionCookies} />
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <Button

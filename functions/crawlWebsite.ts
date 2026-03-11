@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { baseUrl, maxPages = 20, render_spa = false } = await req.json();
+    const { baseUrl, maxPages = 20, render_spa = false, cookies = '' } = await req.json();
 
     if (!baseUrl) {
       return Response.json({ error: 'Base URL is required' }, { status: 400 });
@@ -44,11 +44,13 @@ Deno.serve(async (req) => {
     // Helper to fetch and extract links from HTML
     const fetchAndExtractLinks = async (url) => {
       try {
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          }
-        });
+        const headers = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        };
+        if (cookies) {
+          headers['Cookie'] = cookies;
+        }
+        const response = await fetch(url, { headers });
         
         if (!response.ok) return [];
 
@@ -164,11 +166,13 @@ Deno.serve(async (req) => {
       
       try {
         // Fetch page
-        const response = await fetch(pageUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          }
-        });
+        const headers = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        };
+        if (cookies) {
+          headers['Cookie'] = cookies;
+        }
+        const response = await fetch(pageUrl, { headers });
         
         if (!response.ok) continue;
         
