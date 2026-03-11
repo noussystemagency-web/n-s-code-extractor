@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import puppeteer from 'npm:puppeteer@23.9.0';
 
 Deno.serve(async (req) => {
   try {
@@ -15,30 +14,38 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Base URL is required' }, { status: 400 });
     }
 
+    const SCRAPINGBEE_API_KEY = Deno.env.get('SCRAPINGBEE_API_KEY');
+    if (!SCRAPINGBEE_API_KEY) {
+      return Response.json({ error: 'SCRAPINGBEE_API_KEY not configured' }, { status: 500 });
+    }
+
     const baseUrlObj = new URL(baseUrl);
     const domain = baseUrlObj.hostname;
     const discoveredPages = new Set();
     const extractedPages = [];
 
-    // Launch Puppeteer browser
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    });
+    // Helper to render page with ScrapingBee
+    const renderPage = async (url) => {
+      const params = new URLSearchParams({
+        api_key: SCRAPINGBEE_API_KEY,
+        url: url,
+        render_js: 'true',
+        wait: '2000',
+        premium_proxy: 'true',
+      });
 
-    const parseCookies = (cookieString) => {
-      if (!cookieString) return [];
-      return cookieString.split(';').map(c => {
-        const [name, ...valueParts] = c.trim().split('=');
-        return {
-          name: name.trim(),
-          value: valueParts.join('=').trim(),
-          domain: domain,
-        };
-      }).filter(c => c.name && c.value);
+      if (cookies) {
+        params.append('cookies', cookies);
+      }
+
+      const response = await fetch(`https://app.scrapingbee.com/api/v1/?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`ScrapingBee error: ${response.status}`);
+      }
+
+      return await response.text();
     };
-
-    const cookieObjects = parseCookies(cookies);
 
     // Helper to extract routes from JavaScript
     const extractRoutesFromJS = (jsCode) => {
@@ -62,48 +69,36 @@ Deno.serve(async (req) => {
       return routes;
     };
 
-    // Helper to fetch and extract links using Puppeteer
-    const fetchAndExtractLinks = async (url) => {
-      const page = await browser.newPage();
-      try {
-        // Set cookies
-        if (cookieObjects.length > 0) {
-          await page.setCookie(...cookieObjects);
+    // Helper to extract links from rendered HTML
+    const extractLinksFromHTML = (html, pageUrl) => {
+      const links = new Set();
+      const linkRegex = /href=["']([^"']+)["']/gi;
+      let match;
+      
+      while ((match = linkRegex.exec(html)) !== null) {
+        let href = match[1];
+        if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) continue;
+        
+        try {
+          const absoluteUrl = new URL(href, pageUrl);
+          if (absoluteUrl.hostname === domain) {
+            links.add(absoluteUrl.origin + absoluteUrl.pathname);
+          }
+        } catch (e) {
+          // Invalid URL
         }
+      }
+      
+      return Array.from(links);
+    };
 
-        // Navigate and wait for content
-        await page.goto(url, { 
-          waitUntil: 'networkidle2',
-          timeout: 15000,
-        });
-
-        // Wait for dynamic content
-        await page.waitForTimeout(2000);
-
-        // Extract links from rendered page
-        const links = await page.evaluate((currentDomain) => {
-          const extractedLinks = new Set();
-          document.querySelectorAll('a[href]').forEach(a => {
-            let href = a.getAttribute('href');
-            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) return;
-            
-            try {
-              const absoluteUrl = new URL(href, window.location.href);
-              if (absoluteUrl.hostname === currentDomain) {
-                extractedLinks.add(absoluteUrl.origin + absoluteUrl.pathname);
-              }
-            } catch (e) {
-              // Invalid URL
-            }
-          });
-          return Array.from(extractedLinks);
-        }, domain);
-
-        await page.close();
-        return links;
+    // Helper to fetch and extract links
+    const fetchAndExtractLinks = async (url) => {
+      try {
+        const html = await renderPage(url);
+        return extractLinksFromHTML(html, url);
       } catch (e) {
         console.error(`Error fetching ${url}:`, e.message);
-        await page.close();
         return [];
       }
     };
@@ -112,9 +107,7 @@ Deno.serve(async (req) => {
     const fetchSitemap = async () => {
       try {
         const sitemapUrl = baseUrlObj.origin + '/sitemap.xml';
-        const headers = { 'User-Agent': 'Mozilla/5.0' };
-        if (cookies) headers['Cookie'] = cookies;
-        const response = await fetch(sitemapUrl, { headers });
+        const response = await fetch(sitemapUrl);
         if (!response.ok) return [];
         
         const xml = await response.text();
@@ -160,42 +153,27 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Extraction phase with Puppeteer
+    // Extraction phase
     const pages = Array.from(allDiscoveredPages);
     
     for (let i = 0; i < pages.length; i++) {
       const pageUrl = pages[i];
-      const page = await browser.newPage();
       
       try {
-        // Set cookies
-        if (cookieObjects.length > 0) {
-          await page.setCookie(...cookieObjects);
-        }
-
-        // Navigate and wait for JavaScript execution
-        await page.goto(pageUrl, { 
-          waitUntil: 'networkidle2',
-          timeout: 15000,
-        });
-
-        // Wait for dynamic content to render
-        await page.waitForTimeout(2000);
-
-        // Get rendered HTML
-        const html = await page.content();
+        // Render page with ScrapingBee
+        const html = await renderPage(pageUrl);
         
         // Extract title
-        const title = await page.title() || new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
+        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+        const title = titleMatch ? titleMatch[1] : new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
         
         // Extract inline CSS
-        const inlineStyles = await page.evaluate(() => {
-          const styles = [];
-          document.querySelectorAll('style').forEach(style => {
-            if (style.textContent) styles.push(style.textContent.trim());
-          });
-          return styles;
-        });
+        const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+        const inlineStyles = [];
+        let styleMatch;
+        while ((styleMatch = styleRegex.exec(html)) !== null) {
+          inlineStyles.push(styleMatch[1].trim());
+        }
         
         extractedPages.push({
           url: pageUrl,
@@ -205,15 +183,10 @@ Deno.serve(async (req) => {
           css: inlineStyles.join('\n\n'),
         });
         
-        await page.close();
       } catch (e) {
         console.error(`Error extracting ${pageUrl}:`, e.message);
-        await page.close();
       }
     }
-
-    // Close browser
-    await browser.close();
 
     return Response.json({
       success: true,
@@ -225,12 +198,6 @@ Deno.serve(async (req) => {
       }
     });
   } catch (error) {
-    // Ensure browser is closed on error
-    try {
-      if (browser) await browser.close();
-    } catch (e) {
-      // Ignore
-    }
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
