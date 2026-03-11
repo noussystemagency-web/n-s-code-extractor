@@ -525,6 +525,7 @@ export default function Extractor() {
               isLoading={isExtracting}
               onUrlChange={setCurrentUrl}
             />
+            <CookieManager cookies={sessionCookies} setCookies={setSessionCookies} />
             <ExtractionOptions
               options={options}
               setOptions={setOptions}
@@ -535,7 +536,6 @@ export default function Extractor() {
               options={optimizationOptions}
               setOptions={setOptimizationOptions}
             />
-            <CookieManager cookies={sessionCookies} setCookies={setSessionCookies} />
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <Button
