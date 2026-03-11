@@ -33,8 +33,7 @@ Deno.serve(async (req) => {
       });
 
       if (cookies) {
-        params.append('forward_headers', 'true');
-        params.append('forward_headers_pure', 'Cookie');
+        // ScrapingBee expects cookies as URL parameter in format: name1=value1; name2=value2
         params.append('cookies', cookies);
       }
 
