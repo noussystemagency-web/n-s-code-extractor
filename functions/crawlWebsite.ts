@@ -151,10 +151,46 @@ Deno.serve(async (req) => {
       }
     };
 
+    // Helper to fetch manifest.json and extract routes
+    const fetchManifestRoutes = async () => {
+      try {
+        const manifestUrl = baseUrlObj.origin + '/manifest.json';
+        const response = await fetch(manifestUrl);
+        if (!response.ok) return [];
+        
+        const manifest = await response.json();
+        const routes = [];
+        
+        // Extract routes from common manifest structures
+        if (manifest.routes) {
+          routes.push(...manifest.routes.map(r => baseUrlObj.origin + r));
+        }
+        if (manifest.pages) {
+          routes.push(...manifest.pages.map(p => baseUrlObj.origin + p));
+        }
+        if (manifest.start_url) {
+          routes.push(baseUrlObj.origin + manifest.start_url);
+        }
+        
+        return routes;
+      } catch (e) {
+        console.log('No manifest.json found or error parsing it');
+        return [];
+      }
+    };
+
     // Discovery phase: combine multiple sources
     const allDiscoveredPages = new Set();
     
-    // 1. Render main page first to discover SPA routes
+    // 1. Try to fetch manifest.json first
+    console.log('Checking for manifest.json...');
+    const manifestRoutes = await fetchManifestRoutes();
+    if (manifestRoutes.length > 0) {
+      console.log(`Found ${manifestRoutes.length} routes in manifest.json`);
+      manifestRoutes.forEach(route => allDiscoveredPages.add(route));
+    }
+    
+    // 2. Render main page to discover SPA routes
     console.log('Rendering main page to discover routes...');
     const mainPageHtml = await renderPage(baseUrl);
     allDiscoveredPages.add(baseUrl);
@@ -166,7 +202,7 @@ Deno.serve(async (req) => {
     // Add discovered links to queue
     let queue = [...mainPageLinks];
     
-    // 2. Crawl discovered pages
+    // 3. Crawl discovered pages
     while (queue.length > 0 && allDiscoveredPages.size < maxPages) {
       const url = queue.shift();
       if (allDiscoveredPages.has(url)) continue;
@@ -182,7 +218,7 @@ Deno.serve(async (req) => {
       }
     }
     
-    // 3. Try to fetch sitemap
+    // 4. Try to fetch sitemap
     const sitemapUrls = await fetchSitemap();
     for (const url of sitemapUrls) {
       if (allDiscoveredPages.size < maxPages) {
