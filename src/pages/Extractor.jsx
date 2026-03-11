@@ -286,108 +286,29 @@ export default function Extractor() {
     setIsCrawling(true);
     setCrawlProgress([]);
     setSiteData(null);
-    setExtractedData(null);
-    toast.info('Descubriendo URLs del sitio...');
+    toast.info('Descubriendo y extrayendo páginas...');
 
     try {
-      // Step 1: Discover all URLs (fast, 5-10 seconds)
-      const discoverResponse = await base44.functions.invoke('discoverUrls', {
+      const response = await base44.functions.invoke('crawlWebsite', {
         baseUrl: url,
-        maxPages: 50,
+        maxPages: 20,
+        render_spa: options.render_spa,
       });
 
-      if (!discoverResponse.data?.success) {
-        toast.error(discoverResponse.data?.error || 'Error descubriendo URLs');
-        setIsCrawling(false);
-        return;
-      }
-
-      const { urls, siteName } = discoverResponse.data.data;
-      
-      // Deduplicate URLs using Set
-      const uniqueUrls = Array.from(new Set(urls));
-      
-      toast.success(`🔍 ${uniqueUrls.length} URLs descubiertas. Extrayendo contenido...`);
-      
-      // Initialize progress tracking
-      const progressItems = uniqueUrls.map(pageUrl => ({
-        url: pageUrl,
-        pathname: new URL(pageUrl).pathname,
-        title: new URL(pageUrl).pathname.split('/').filter(Boolean).pop() || 'Home',
-        status: 'pending',
-        html: '',
-        css: '',
-      }));
-      
-      setCrawlProgress(progressItems);
-
-      // Step 2: Extract each URL individually (sequential to avoid timeout)
-      const extractedPages = [];
-      
-      for (let i = 0; i < uniqueUrls.length; i++) {
-        const pageUrl = uniqueUrls[i];
+      if (response.data?.success) {
+        // Create progress items
+        const pages = response.data.data.pages.map(p => ({
+          ...p,
+          status: 'completed'
+        }));
         
-        // Update progress: mark as extracting
-        setCrawlProgress(prev => prev.map((item, idx) => 
-          idx === i ? { ...item, status: 'extracting' } : item
-        ));
-        
-        try {
-          const extractResponse = await base44.functions.invoke('extractWebPage', {
-            url: pageUrl,
-            options: { html: true, css_inline: true, css_external: false, javascript: false, images: false, fonts: false, structure: false, render_spa: false },
-            mode: 'full_page',
-            cleanup: { remove_scripts: false, minify: false, optimize: false },
-          });
-
-          if (extractResponse.data?.success) {
-            const pageData = extractResponse.data.data;
-            const titleMatch = pageData.html?.match(/<title[^>]*>(.*?)<\/title>/i);
-            const title = titleMatch ? titleMatch[1] : new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
-            
-            const extractedPage = {
-              url: pageUrl,
-              pathname: new URL(pageUrl).pathname,
-              title,
-              html: (pageData.html || '').substring(0, 50000),
-              css: (pageData.css?.inline || '').substring(0, 20000),
-              status: 'completed',
-            };
-            
-            extractedPages.push(extractedPage);
-            
-            // Update progress: mark as completed
-            setCrawlProgress(prev => prev.map((item, idx) => 
-              idx === i ? extractedPage : item
-            ));
-          } else {
-            // Mark as error
-            setCrawlProgress(prev => prev.map((item, idx) => 
-              idx === i ? { ...item, status: 'error' } : item
-            ));
-          }
-        } catch (err) {
-          console.error(`Error extracting ${pageUrl}:`, err);
-          // Mark as error
-          setCrawlProgress(prev => prev.map((item, idx) => 
-            idx === i ? { ...item, status: 'error' } : item
-          ));
-        }
+        setCrawlProgress(pages);
+        setSiteData(response.data.data);
+        toast.success(`✅ ${response.data.data.totalPages} páginas extraídas`);
+      } else {
+        toast.error(response.data?.error || 'Error en la extracción');
       }
-
-      // Step 3: Build final site data
-      const finalSiteData = {
-        baseUrl: url,
-        siteName,
-        totalPages: extractedPages.length,
-        pages: extractedPages,
-      };
-      
-      setSiteData(finalSiteData);
-      toast.success(`✅ ${extractedPages.length} páginas extraídas exitosamente`);
-      
     } catch (err) {
-      console.error('Crawl error:', err);
       toast.error('Error: ' + (err.message || 'No se pudo extraer'));
     } finally {
       setIsCrawling(false);
