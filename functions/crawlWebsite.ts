@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { baseUrl, maxPages = 20, render_spa = false, cookies = '' } = await req.json();
+    const { baseUrl, maxPages = 50, phase = 'discover', urlsToExtract = [], cookies = '' } = await req.json();
 
     if (!baseUrl) {
       return Response.json({ error: 'Base URL is required' }, { status: 400 });
@@ -21,8 +21,6 @@ Deno.serve(async (req) => {
 
     const baseUrlObj = new URL(baseUrl);
     const domain = baseUrlObj.hostname;
-    const discoveredPages = new Set();
-    const extractedPages = [];
 
     // Helper to render page with ScrapingBee
     const renderPage = async (url) => {
@@ -35,11 +33,9 @@ Deno.serve(async (req) => {
       });
 
       if (cookies) {
-        // Parse cookies and format for ScrapingBee
-        const cookieParams = cookies.split(';').map(c => c.trim()).filter(c => c);
-        cookieParams.forEach(cookie => {
-          params.append('cookies', cookie);
-        });
+        params.append('forward_headers', 'true');
+        params.append('forward_headers_pure', 'Cookie');
+        params.append('cookies', cookies);
       }
 
       const response = await fetch(`https://app.scrapingbee.com/api/v1/?${params.toString()}`);
@@ -51,33 +47,10 @@ Deno.serve(async (req) => {
       return await response.text();
     };
 
-    // Helper to extract routes from JavaScript
-    const extractRoutesFromJS = (jsCode) => {
-      const routes = [];
-      const patterns = [
-        /path:\s*["']([^"']+)["']/g,
-        /route\(["']([^"']+)["']\)/g,
-        /<Route path=["']([^"']+)["']/g,
-        /href=["']\/([^"'\/][^"']*?)["']/g,
-        /"pathname":\s*["']([^"']+)["']/g,
-      ];
-      
-      for (const pattern of patterns) {
-        let match;
-        while ((match = pattern.exec(jsCode)) !== null) {
-          let route = match[1];
-          if (!route.startsWith('/')) route = '/' + route;
-          routes.push(route);
-        }
-      }
-      return routes;
-    };
-
     // Helper to extract links from rendered HTML
     const extractLinksFromHTML = (html, pageUrl) => {
       const links = new Set();
       
-      // Extract from href attributes
       const linkRegex = /href=["']([^"']+)["']/gi;
       let match;
       
@@ -95,18 +68,8 @@ Deno.serve(async (req) => {
         }
       }
       
-      // Extract from React Router data-* attributes and navigation elements
       const reactLinkRegex = /(?:to|data-to|data-path)=["']([^"']+)["']/gi;
       while ((match = reactLinkRegex.exec(html)) !== null) {
-        let path = match[1];
-        if (path.startsWith('/')) {
-          links.add(baseUrlObj.origin + path);
-        }
-      }
-      
-      // Extract from onclick handlers with navigation
-      const onclickRegex = /(?:navigate|push|replace)\(["']([^"']+)["']\)/gi;
-      while ((match = onclickRegex.exec(html)) !== null) {
         let path = match[1];
         if (path.startsWith('/')) {
           links.add(baseUrlObj.origin + path);
@@ -116,13 +79,22 @@ Deno.serve(async (req) => {
       return Array.from(links);
     };
 
-    // Helper to fetch and extract links
-    const fetchAndExtractLinks = async (url) => {
+    // Helper to fetch manifest routes
+    const fetchManifestRoutes = async () => {
       try {
-        const html = await renderPage(url);
-        return extractLinksFromHTML(html, url);
+        const manifestUrl = baseUrlObj.origin + '/manifest.json';
+        const response = await fetch(manifestUrl);
+        if (!response.ok) return [];
+        
+        const manifest = await response.json();
+        const routes = [];
+        
+        if (manifest.routes) routes.push(...manifest.routes.map(r => baseUrlObj.origin + r));
+        if (manifest.pages) routes.push(...manifest.pages.map(p => baseUrlObj.origin + p));
+        if (manifest.start_url) routes.push(baseUrlObj.origin + manifest.start_url);
+        
+        return routes;
       } catch (e) {
-        console.error(`Error fetching ${url}:`, e.message);
         return [];
       }
     };
@@ -151,125 +123,115 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Helper to fetch manifest.json and extract routes
-    const fetchManifestRoutes = async () => {
-      try {
-        const manifestUrl = baseUrlObj.origin + '/manifest.json';
-        const response = await fetch(manifestUrl);
-        if (!response.ok) return [];
-        
-        const manifest = await response.json();
-        const routes = [];
-        
-        // Extract routes from common manifest structures
-        if (manifest.routes) {
-          routes.push(...manifest.routes.map(r => baseUrlObj.origin + r));
-        }
-        if (manifest.pages) {
-          routes.push(...manifest.pages.map(p => baseUrlObj.origin + p));
-        }
-        if (manifest.start_url) {
-          routes.push(baseUrlObj.origin + manifest.start_url);
-        }
-        
-        return routes;
-      } catch (e) {
-        console.log('No manifest.json found or error parsing it');
-        return [];
-      }
-    };
-
-    // Discovery phase: combine multiple sources
-    const allDiscoveredPages = new Set();
-    
-    // 1. Try to fetch manifest.json first
-    console.log('Checking for manifest.json...');
-    const manifestRoutes = await fetchManifestRoutes();
-    if (manifestRoutes.length > 0) {
-      console.log(`Found ${manifestRoutes.length} routes in manifest.json`);
-      manifestRoutes.forEach(route => allDiscoveredPages.add(route));
-    }
-    
-    // 2. Render main page to discover SPA routes
-    console.log('Rendering main page to discover routes...');
-    const mainPageHtml = await renderPage(baseUrl);
-    allDiscoveredPages.add(baseUrl);
-    
-    // Extract all links from rendered main page (including sidebar menu)
-    const mainPageLinks = extractLinksFromHTML(mainPageHtml, baseUrl);
-    console.log(`Found ${mainPageLinks.length} links in main page`);
-    
-    // Add discovered links to queue
-    let queue = [...mainPageLinks];
-    
-    // 3. Crawl discovered pages
-    while (queue.length > 0 && allDiscoveredPages.size < maxPages) {
-      const url = queue.shift();
-      if (allDiscoveredPages.has(url)) continue;
+    // PHASE 1: DISCOVERY - Fast URL collection
+    if (phase === 'discover') {
+      console.log('=== URL DISCOVERY PHASE ===');
+      const allDiscoveredPages = new Set();
       
-      console.log(`Crawling: ${url}`);
-      allDiscoveredPages.add(url);
+      // 1. Check manifest.json
+      console.log('Checking manifest.json...');
+      const manifestRoutes = await fetchManifestRoutes();
+      if (manifestRoutes.length > 0) {
+        console.log(`Found ${manifestRoutes.length} routes in manifest`);
+        manifestRoutes.forEach(route => allDiscoveredPages.add(route));
+      }
       
-      const newLinks = await fetchAndExtractLinks(url);
-      for (const link of newLinks) {
-        if (!allDiscoveredPages.has(link) && allDiscoveredPages.size < maxPages) {
-          queue.push(link);
+      // 2. Render main page and extract all links (including sidebar)
+      console.log('Rendering main page...');
+      const mainPageHtml = await renderPage(baseUrl);
+      allDiscoveredPages.add(baseUrl);
+      
+      const mainPageLinks = extractLinksFromHTML(mainPageHtml, baseUrl);
+      console.log(`Found ${mainPageLinks.length} links in main page`);
+      mainPageLinks.forEach(link => allDiscoveredPages.add(link));
+      
+      // 3. Check sitemap
+      console.log('Checking sitemap...');
+      const sitemapUrls = await fetchSitemap();
+      if (sitemapUrls.length > 0) {
+        console.log(`Found ${sitemapUrls.length} URLs in sitemap`);
+        sitemapUrls.forEach(url => allDiscoveredPages.add(url));
+      }
+      
+      const discoveredUrls = Array.from(allDiscoveredPages).slice(0, maxPages);
+      console.log(`✓ Discovered ${discoveredUrls.length} unique URLs`);
+      
+      return Response.json({
+        success: true,
+        phase: 'discover',
+        data: {
+          urls: discoveredUrls,
+          totalFound: discoveredUrls.length,
         }
-      }
-    }
-    
-    // 4. Try to fetch sitemap
-    const sitemapUrls = await fetchSitemap();
-    for (const url of sitemapUrls) {
-      if (allDiscoveredPages.size < maxPages) {
-        allDiscoveredPages.add(url);
-      }
+      });
     }
 
-    // Extraction phase
-    const pages = Array.from(allDiscoveredPages);
-    
-    for (let i = 0; i < pages.length; i++) {
-      const pageUrl = pages[i];
-      
-      try {
-        // Render page with ScrapingBee
-        const html = await renderPage(pageUrl);
-        
-        // Extract title
-        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-        const title = titleMatch ? titleMatch[1] : new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
-        
-        // Extract inline CSS
-        const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-        const inlineStyles = [];
-        let styleMatch;
-        while ((styleMatch = styleRegex.exec(html)) !== null) {
-          inlineStyles.push(styleMatch[1].trim());
-        }
-        
-        extractedPages.push({
-          url: pageUrl,
-          pathname: new URL(pageUrl).pathname,
-          title,
-          html: html.substring(0, 100000),
-          css: inlineStyles.join('\n\n'),
-        });
-        
-      } catch (e) {
-        console.error(`Error extracting ${pageUrl}:`, e.message);
+    // PHASE 2: EXTRACTION - Process URLs one by one
+    if (phase === 'extract') {
+      if (!urlsToExtract || urlsToExtract.length === 0) {
+        return Response.json({ error: 'No URLs provided for extraction' }, { status: 400 });
       }
+
+      console.log(`=== EXTRACTION PHASE: Processing ${urlsToExtract.length} URLs ===`);
+      const extractedPages = [];
+      
+      for (let i = 0; i < urlsToExtract.length; i++) {
+        const pageUrl = urlsToExtract[i];
+        console.log(`[${i + 1}/${urlsToExtract.length}] Extracting: ${pageUrl}`);
+        
+        try {
+          const html = await renderPage(pageUrl);
+          
+          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+          const title = titleMatch ? titleMatch[1].trim() : new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
+          
+          const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+          const inlineStyles = [];
+          let styleMatch;
+          while ((styleMatch = styleRegex.exec(html)) !== null) {
+            inlineStyles.push(styleMatch[1].trim());
+          }
+          
+          extractedPages.push({
+            url: pageUrl,
+            pathname: new URL(pageUrl).pathname,
+            title,
+            html: html.substring(0, 100000),
+            css: inlineStyles.join('\n\n'),
+          });
+          
+          console.log(`✓ Extracted: ${title}`);
+          
+          // Small delay to avoid rate limiting
+          if (i < urlsToExtract.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } catch (e) {
+          console.error(`✗ Error extracting ${pageUrl}:`, e.message);
+          extractedPages.push({
+            url: pageUrl,
+            pathname: new URL(pageUrl).pathname,
+            title: 'Error',
+            html: '',
+            css: '',
+            error: e.message,
+          });
+        }
+      }
+
+      return Response.json({
+        success: true,
+        phase: 'extract',
+        data: {
+          baseUrl,
+          totalPages: extractedPages.length,
+          pages: extractedPages,
+          siteName: baseUrlObj.hostname.replace('www.', ''),
+        }
+      });
     }
 
-    return Response.json({
-      success: true,
-      data: {
-        baseUrl,
-        totalPages: extractedPages.length,
-        pages: extractedPages,
-        siteName: baseUrlObj.hostname.replace('www.', ''),
-      }
-    });
+    return Response.json({ error: 'Invalid phase parameter' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
