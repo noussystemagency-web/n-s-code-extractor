@@ -306,6 +306,18 @@ export default function Extractor() {
       }
 
       const urls = discoveryResponse.data.data.urls;
+      const discoveryErrors = discoveryResponse.data.data.errors;
+      
+      if (discoveryErrors && discoveryErrors.length > 0) {
+        toast.error(`Advertencia: ${discoveryErrors.join(', ')}`);
+      }
+      
+      if (urls.length === 0) {
+        toast.error('No se encontraron páginas para extraer');
+        setIsCrawling(false);
+        return;
+      }
+      
       toast.success(`✓ ${urls.length} páginas descubiertas`);
 
       // Initialize progress tracking
@@ -340,13 +352,31 @@ export default function Extractor() {
 
         if (extractionResponse.data?.success) {
           const extracted = extractionResponse.data.data.pages;
+          const errors = extractionResponse.data.data.errors;
+          
           allExtracted.push(...extracted);
 
-          // Update progress with completed pages
+          // Update progress with completed or failed pages
           setCrawlProgress(prev => prev.map(p => {
             const found = extracted.find(e => e.url === p.url);
-            return found ? {...p, ...found, status: 'completed'} : p;
+            if (found) {
+              return {
+                ...p, 
+                ...found, 
+                status: found.success ? 'completed' : 'error'
+              };
+            }
+            return p;
           }));
+          
+          // Show errors for this batch
+          if (errors && errors.length > 0) {
+            errors.forEach(err => {
+              toast.error(`Error en ${new URL(err.url).pathname}: ${err.error}`, {
+                duration: 5000,
+              });
+            });
+          }
         }
 
         // Small delay between batches
@@ -363,7 +393,14 @@ export default function Extractor() {
         siteName: new URL(url).hostname.replace('www.', ''),
       });
 
-      toast.success(`✅ ${allExtracted.length} páginas extraídas`);
+      const successfulPages = allExtracted.filter(p => p.success !== false).length;
+      const failedPages = allExtracted.length - successfulPages;
+      
+      if (failedPages > 0) {
+        toast.success(`✅ ${successfulPages} páginas extraídas (${failedPages} errores)`);
+      } else {
+        toast.success(`✅ ${allExtracted.length} páginas extraídas`);
+      }
     } catch (err) {
       toast.error('Error: ' + (err.message || 'No se pudo extraer'));
     } finally {
