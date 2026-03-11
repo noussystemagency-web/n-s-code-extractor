@@ -288,29 +288,82 @@ export default function Extractor() {
     setIsCrawling(true);
     setCrawlProgress([]);
     setSiteData(null);
-    toast.info('Descubriendo y extrayendo páginas...');
 
     try {
-      const response = await base44.functions.invoke('crawlWebsite', {
+      // PHASE 1: Discovery
+      toast.info('🔍 Descubriendo páginas...');
+      const discoveryResponse = await base44.functions.invoke('crawlWebsite', {
         baseUrl: url,
-        maxPages: 20,
-        render_spa: options.render_spa,
+        maxPages: 50,
+        phase: 'discover',
         cookies: sessionCookies,
       });
 
-      if (response.data?.success) {
-        // Create progress items
-        const pages = response.data.data.pages.map(p => ({
-          ...p,
-          status: 'completed'
-        }));
-        
-        setCrawlProgress(pages);
-        setSiteData(response.data.data);
-        toast.success(`✅ ${response.data.data.totalPages} páginas extraídas`);
-      } else {
-        toast.error(response.data?.error || 'Error en la extracción');
+      if (!discoveryResponse.data?.success) {
+        toast.error('Error en descubrimiento');
+        setIsCrawling(false);
+        return;
       }
+
+      const urls = discoveryResponse.data.data.urls;
+      toast.success(`✓ ${urls.length} páginas descubiertas`);
+
+      // Initialize progress tracking
+      const progressItems = urls.map(url => ({
+        url,
+        title: new URL(url).pathname || '/',
+        status: 'pending',
+        html: '',
+        css: '',
+      }));
+      setCrawlProgress(progressItems);
+
+      // PHASE 2: Extract pages asynchronously
+      toast.info(`⚡ Extrayendo ${urls.length} páginas...`);
+      const batchSize = 5;
+      const allExtracted = [];
+
+      for (let i = 0; i < urls.length; i += batchSize) {
+        const batch = urls.slice(i, i + batchSize);
+        
+        // Update status to extracting
+        setCrawlProgress(prev => prev.map(p => 
+          batch.includes(p.url) ? {...p, status: 'extracting'} : p
+        ));
+
+        const extractionResponse = await base44.functions.invoke('crawlWebsite', {
+          baseUrl: url,
+          phase: 'extract',
+          urlsToExtract: batch,
+          cookies: sessionCookies,
+        });
+
+        if (extractionResponse.data?.success) {
+          const extracted = extractionResponse.data.data.pages;
+          allExtracted.push(...extracted);
+
+          // Update progress with completed pages
+          setCrawlProgress(prev => prev.map(p => {
+            const found = extracted.find(e => e.url === p.url);
+            return found ? {...p, ...found, status: 'completed'} : p;
+          }));
+        }
+
+        // Small delay between batches
+        if (i + batchSize < urls.length) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+
+      // Set final data
+      setSiteData({
+        baseUrl: url,
+        totalPages: allExtracted.length,
+        pages: allExtracted,
+        siteName: new URL(url).hostname.replace('www.', ''),
+      });
+
+      toast.success(`✅ ${allExtracted.length} páginas extraídas`);
     } catch (err) {
       toast.error('Error: ' + (err.message || 'No se pudo extraer'));
     } finally {
