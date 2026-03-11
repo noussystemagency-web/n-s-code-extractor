@@ -87,7 +87,9 @@ Deno.serve(async (req) => {
           }
           
           try {
-            const scriptRes = await fetch(scriptUrl);
+            const scriptHeaders = { 'User-Agent': 'Mozilla/5.0' };
+            if (cookies) scriptHeaders['Cookie'] = cookies;
+            const scriptRes = await fetch(scriptUrl, { headers: scriptHeaders });
             if (scriptRes.ok) {
               const scriptCode = await scriptRes.text();
               const routes = extractRoutesFromJS(scriptCode);
@@ -112,7 +114,9 @@ Deno.serve(async (req) => {
     const fetchSitemap = async () => {
       try {
         const sitemapUrl = baseUrlObj.origin + '/sitemap.xml';
-        const response = await fetch(sitemapUrl);
+        const headers = { 'User-Agent': 'Mozilla/5.0' };
+        if (cookies) headers['Cookie'] = cookies;
+        const response = await fetch(sitemapUrl, { headers });
         if (!response.ok) return [];
         
         const xml = await response.text();
