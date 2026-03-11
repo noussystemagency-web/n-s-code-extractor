@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import puppeteer from 'npm:puppeteer@23.12.0';
 
 Deno.serve(async (req) => {
   try {
@@ -18,6 +19,26 @@ Deno.serve(async (req) => {
     const domain = baseUrlObj.hostname;
     const discoveredPages = new Set();
     const extractedPages = [];
+
+    // Launch Puppeteer browser
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+
+    const parseCookies = (cookieString) => {
+      if (!cookieString) return [];
+      return cookieString.split(';').map(c => {
+        const [name, ...valueParts] = c.trim().split('=');
+        return {
+          name: name.trim(),
+          value: valueParts.join('=').trim(),
+          domain: domain,
+        };
+      }).filter(c => c.name && c.value);
+    };
+
+    const cookieObjects = parseCookies(cookies);
 
     // Helper to extract routes from JavaScript
     const extractRoutesFromJS = (jsCode) => {
@@ -41,71 +62,48 @@ Deno.serve(async (req) => {
       return routes;
     };
 
-    // Helper to fetch and extract links from HTML
+    // Helper to fetch and extract links using Puppeteer
     const fetchAndExtractLinks = async (url) => {
+      const page = await browser.newPage();
       try {
-        const headers = {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        };
-        if (cookies) {
-          headers['Cookie'] = cookies;
+        // Set cookies
+        if (cookieObjects.length > 0) {
+          await page.setCookie(...cookieObjects);
         }
-        const response = await fetch(url, { headers });
-        
-        if (!response.ok) return [];
 
-        const html = await response.text();
-        const links = new Set();
-        
-        // Extract links from HTML href attributes
-        const linkRegex = /href=["']([^"']+)["']/gi;
-        let match;
-        while ((match = linkRegex.exec(html)) !== null) {
-          let href = match[1];
-          if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) continue;
-          
-          if (href.startsWith('/')) {
-            href = baseUrlObj.origin + href;
-          } else if (!href.startsWith('http')) {
-            href = new URL(href, url).href;
-          }
-          
-          const linkObj = new URL(href);
-          if (linkObj.hostname === domain) {
-            links.add(linkObj.origin + linkObj.pathname);
-          }
-        }
-        
-        // Extract script tags and fetch them for route analysis
-        const scriptRegex = /<script[^>]*src=["']([^"']+)["']/gi;
-        while ((match = scriptRegex.exec(html)) !== null) {
-          let scriptUrl = match[1];
-          if (scriptUrl.startsWith('/')) {
-            scriptUrl = baseUrlObj.origin + scriptUrl;
-          } else if (!scriptUrl.startsWith('http')) {
-            scriptUrl = new URL(scriptUrl, url).href;
-          }
-          
-          try {
-            const scriptHeaders = { 'User-Agent': 'Mozilla/5.0' };
-            if (cookies) scriptHeaders['Cookie'] = cookies;
-            const scriptRes = await fetch(scriptUrl, { headers: scriptHeaders });
-            if (scriptRes.ok) {
-              const scriptCode = await scriptRes.text();
-              const routes = extractRoutesFromJS(scriptCode);
-              for (const route of routes) {
-                const routeUrl = baseUrlObj.origin + route;
-                links.add(routeUrl);
+        // Navigate and wait for content
+        await page.goto(url, { 
+          waitUntil: 'networkidle2',
+          timeout: 15000,
+        });
+
+        // Wait for dynamic content
+        await page.waitForTimeout(2000);
+
+        // Extract links from rendered page
+        const links = await page.evaluate((currentDomain) => {
+          const extractedLinks = new Set();
+          document.querySelectorAll('a[href]').forEach(a => {
+            let href = a.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) return;
+            
+            try {
+              const absoluteUrl = new URL(href, window.location.href);
+              if (absoluteUrl.hostname === currentDomain) {
+                extractedLinks.add(absoluteUrl.origin + absoluteUrl.pathname);
               }
+            } catch (e) {
+              // Invalid URL
             }
-          } catch (e) {
-            // Skip if script fetch fails
-          }
-        }
-        
-        return Array.from(links);
+          });
+          return Array.from(extractedLinks);
+        }, domain);
+
+        await page.close();
+        return links;
       } catch (e) {
         console.error(`Error fetching ${url}:`, e.message);
+        await page.close();
         return [];
       }
     };
@@ -162,71 +160,42 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Extraction phase
+    // Extraction phase with Puppeteer
     const pages = Array.from(allDiscoveredPages);
     
     for (let i = 0; i < pages.length; i++) {
       const pageUrl = pages[i];
+      const page = await browser.newPage();
       
       try {
-        // Fetch page
-        const headers = {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        };
-        if (cookies) {
-          headers['Cookie'] = cookies;
+        // Set cookies
+        if (cookieObjects.length > 0) {
+          await page.setCookie(...cookieObjects);
         }
-        const response = await fetch(pageUrl, { headers });
+
+        // Navigate and wait for JavaScript execution
+        await page.goto(pageUrl, { 
+          waitUntil: 'networkidle2',
+          timeout: 15000,
+        });
+
+        // Wait for dynamic content to render
+        await page.waitForTimeout(2000);
+
+        // Get rendered HTML
+        const html = await page.content();
         
-        if (!response.ok) continue;
-        
-        let html = await response.text();
-        
-        // If render_spa enabled and root is empty, generate with AI
-        if (render_spa) {
-          const rootRegex = /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is;
-          const rootMatch = rootRegex.exec(html);
-          const rootContent = rootMatch ? rootMatch[1].trim() : '';
-          
-          if (!rootContent || rootContent.length < 100) {
-            // Extract metadata
-            const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-            const title = titleMatch ? titleMatch[1] : 'Page';
-            const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-            const description = descMatch ? descMatch[1] : '';
-            
-            // Generate with AI
-            const aiResponse = await base44.integrations.Core.InvokeLLM({
-              prompt: `Generate realistic HTML for a dashboard/app page titled "${title}". Description: "${description}". 
-Return ONLY HTML markup for <div id="root"></div> content - no wrapper divs, no explanations.`,
-              response_json_schema: {
-                type: 'object',
-                properties: {
-                  html: { type: 'string' }
-                }
-              }
-            });
-            
-            if (aiResponse?.html) {
-              html = html.replace(
-                /<div[^>]*id=["']root["'][^>]*>(.*?)<\/div>/is,
-                `<div id="root">${aiResponse.html}</div>`
-              );
-            }
-          }
-        }
-        
-        // Extract page info
-        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-        const title = titleMatch ? titleMatch[1] : new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
+        // Extract title
+        const title = await page.title() || new URL(pageUrl).pathname.replace(/\//g, '').slice(0, 30) || 'Home';
         
         // Extract inline CSS
-        const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-        const inlineStyles = [];
-        let styleMatch;
-        while ((styleMatch = styleRegex.exec(html)) !== null) {
-          inlineStyles.push(styleMatch[1].trim());
-        }
+        const inlineStyles = await page.evaluate(() => {
+          const styles = [];
+          document.querySelectorAll('style').forEach(style => {
+            if (style.textContent) styles.push(style.textContent.trim());
+          });
+          return styles;
+        });
         
         extractedPages.push({
           url: pageUrl,
@@ -236,10 +205,15 @@ Return ONLY HTML markup for <div id="root"></div> content - no wrapper divs, no 
           css: inlineStyles.join('\n\n'),
         });
         
+        await page.close();
       } catch (e) {
         console.error(`Error extracting ${pageUrl}:`, e.message);
+        await page.close();
       }
     }
+
+    // Close browser
+    await browser.close();
 
     return Response.json({
       success: true,
@@ -251,6 +225,12 @@ Return ONLY HTML markup for <div id="root"></div> content - no wrapper divs, no 
       }
     });
   } catch (error) {
+    // Ensure browser is closed on error
+    try {
+      if (browser) await browser.close();
+    } catch (e) {
+      // Ignore
+    }
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
