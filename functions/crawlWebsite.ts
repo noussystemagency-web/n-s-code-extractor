@@ -24,26 +24,31 @@ Deno.serve(async (req) => {
 
     // Helper to render page with ScrapingBee
     const renderPage = async (url) => {
-      const params = new URLSearchParams({
-        api_key: SCRAPINGBEE_API_KEY,
-        url: url,
-        render_js: 'true',
-        wait: '2000',
-        premium_proxy: 'true',
-      });
+      try {
+        const params = new URLSearchParams({
+          api_key: SCRAPINGBEE_API_KEY,
+          url: url,
+          render_js: 'true',
+          wait: '2000',
+          premium_proxy: 'true',
+        });
 
-      if (cookies) {
-        // ScrapingBee expects cookies as URL parameter in format: name1=value1; name2=value2
-        params.append('cookies', cookies);
+        if (cookies) {
+          params.append('cookies', cookies);
+        }
+
+        const response = await fetch(`https://app.scrapingbee.com/api/v1/?${params.toString()}`);
+        
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`ScrapingBee ${response.status}: ${errorBody.substring(0, 200)}`);
+        }
+
+        return await response.text();
+      } catch (error) {
+        console.error(`Error rendering ${url}:`, error.message);
+        throw error;
       }
-
-      const response = await fetch(`https://app.scrapingbee.com/api/v1/?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`ScrapingBee error: ${response.status}`);
-      }
-
-      return await response.text();
     };
 
     // Helper to extract links from rendered HTML
@@ -126,30 +131,46 @@ Deno.serve(async (req) => {
     if (phase === 'discover') {
       console.log('=== URL DISCOVERY PHASE ===');
       const allDiscoveredPages = new Set();
+      const errors = [];
       
       // 1. Check manifest.json
-      console.log('Checking manifest.json...');
-      const manifestRoutes = await fetchManifestRoutes();
-      if (manifestRoutes.length > 0) {
-        console.log(`Found ${manifestRoutes.length} routes in manifest`);
-        manifestRoutes.forEach(route => allDiscoveredPages.add(route));
+      try {
+        console.log('Checking manifest.json...');
+        const manifestRoutes = await fetchManifestRoutes();
+        if (manifestRoutes.length > 0) {
+          console.log(`Found ${manifestRoutes.length} routes in manifest`);
+          manifestRoutes.forEach(route => allDiscoveredPages.add(route));
+        }
+      } catch (error) {
+        console.log('Manifest check failed:', error.message);
       }
       
       // 2. Render main page and extract all links (including sidebar)
-      console.log('Rendering main page...');
-      const mainPageHtml = await renderPage(baseUrl);
-      allDiscoveredPages.add(baseUrl);
-      
-      const mainPageLinks = extractLinksFromHTML(mainPageHtml, baseUrl);
-      console.log(`Found ${mainPageLinks.length} links in main page`);
-      mainPageLinks.forEach(link => allDiscoveredPages.add(link));
+      try {
+        console.log('Rendering main page...');
+        const mainPageHtml = await renderPage(baseUrl);
+        allDiscoveredPages.add(baseUrl);
+        
+        const mainPageLinks = extractLinksFromHTML(mainPageHtml, baseUrl);
+        console.log(`Found ${mainPageLinks.length} links in main page`);
+        mainPageLinks.forEach(link => allDiscoveredPages.add(link));
+      } catch (error) {
+        errors.push(`Main page render failed: ${error.message}`);
+        console.error('Main page error:', error.message);
+        // Add base URL anyway
+        allDiscoveredPages.add(baseUrl);
+      }
       
       // 3. Check sitemap
-      console.log('Checking sitemap...');
-      const sitemapUrls = await fetchSitemap();
-      if (sitemapUrls.length > 0) {
-        console.log(`Found ${sitemapUrls.length} URLs in sitemap`);
-        sitemapUrls.forEach(url => allDiscoveredPages.add(url));
+      try {
+        console.log('Checking sitemap...');
+        const sitemapUrls = await fetchSitemap();
+        if (sitemapUrls.length > 0) {
+          console.log(`Found ${sitemapUrls.length} URLs in sitemap`);
+          sitemapUrls.forEach(url => allDiscoveredPages.add(url));
+        }
+      } catch (error) {
+        console.log('Sitemap check failed:', error.message);
       }
       
       const discoveredUrls = Array.from(allDiscoveredPages).slice(0, maxPages);
@@ -161,6 +182,7 @@ Deno.serve(async (req) => {
         data: {
           urls: discoveredUrls,
           totalFound: discoveredUrls.length,
+          errors: errors.length > 0 ? errors : undefined,
         }
       });
     }
@@ -173,6 +195,7 @@ Deno.serve(async (req) => {
 
       console.log(`=== EXTRACTION PHASE: Processing ${urlsToExtract.length} URLs ===`);
       const extractedPages = [];
+      const extractionErrors = [];
       
       for (let i = 0; i < urlsToExtract.length; i++) {
         const pageUrl = urlsToExtract[i];
@@ -197,25 +220,37 @@ Deno.serve(async (req) => {
             title,
             html: html.substring(0, 100000),
             css: inlineStyles.join('\n\n'),
+            success: true,
           });
           
           console.log(`✓ Extracted: ${title}`);
-          
-          // Small delay to avoid rate limiting
-          if (i < urlsToExtract.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
         } catch (e) {
-          console.error(`✗ Error extracting ${pageUrl}:`, e.message);
+          const errorMsg = e.message || 'Unknown error';
+          console.error(`✗ Error extracting ${pageUrl}:`, errorMsg);
+          extractionErrors.push({ url: pageUrl, error: errorMsg });
+          
+          // Add failed page to results with error info
           extractedPages.push({
             url: pageUrl,
             pathname: new URL(pageUrl).pathname,
-            title: 'Error',
+            title: `Error - ${new URL(pageUrl).pathname}`,
             html: '',
             css: '',
-            error: e.message,
+            success: false,
+            error: errorMsg,
           });
         }
+        
+        // Small delay to avoid rate limiting
+        if (i < urlsToExtract.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      const successCount = extractedPages.filter(p => p.success).length;
+      console.log(`Extraction complete: ${successCount}/${urlsToExtract.length} successful`);
+      if (extractionErrors.length > 0) {
+        console.log('Errors:', extractionErrors);
       }
 
       return Response.json({
@@ -224,8 +259,11 @@ Deno.serve(async (req) => {
         data: {
           baseUrl,
           totalPages: extractedPages.length,
+          successfulPages: extractedPages.filter(p => p.success).length,
+          failedPages: extractionErrors.length,
           pages: extractedPages,
           siteName: baseUrlObj.hostname.replace('www.', ''),
+          errors: extractionErrors.length > 0 ? extractionErrors : undefined,
         }
       });
     }
