@@ -60,23 +60,34 @@ Deno.serve(async (req) => {
       
       while ((match = linkRegex.exec(html)) !== null) {
         let href = match[1];
-        if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) continue;
+        // Skip fragments, javascript, mailto, and external protocols
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') || 
+            href.startsWith('mailto:') || href.startsWith('tel:')) continue;
         
         try {
           const absoluteUrl = new URL(href, pageUrl);
           if (absoluteUrl.hostname === domain) {
-            links.add(absoluteUrl.origin + absoluteUrl.pathname);
+            // Use href to create clean URL, not concatenation
+            const cleanUrl = absoluteUrl.origin + absoluteUrl.pathname;
+            links.add(cleanUrl);
           }
         } catch (e) {
-          // Invalid URL
+          // Invalid URL, skip
         }
       }
       
       const reactLinkRegex = /(?:to|data-to|data-path)=["']([^"']+)["']/gi;
       while ((match = reactLinkRegex.exec(html)) !== null) {
         let path = match[1];
-        if (path.startsWith('/')) {
-          links.add(baseUrlObj.origin + path);
+        if (path && path.startsWith('/')) {
+          const cleanUrl = baseUrlObj.origin + path;
+          // Validate it's a proper URL
+          try {
+            new URL(cleanUrl);
+            links.add(cleanUrl);
+          } catch (e) {
+            // Invalid, skip
+          }
         }
       }
       
@@ -93,9 +104,25 @@ Deno.serve(async (req) => {
         const manifest = await response.json();
         const routes = [];
         
-        if (manifest.routes) routes.push(...manifest.routes.map(r => baseUrlObj.origin + r));
-        if (manifest.pages) routes.push(...manifest.pages.map(p => baseUrlObj.origin + p));
-        if (manifest.start_url) routes.push(baseUrlObj.origin + manifest.start_url);
+        if (manifest.routes) {
+          manifest.routes.forEach(r => {
+            const path = typeof r === 'string' ? r : r.path;
+            if (path) {
+              const cleanPath = path.startsWith('/') ? path : '/' + path;
+              routes.push(baseUrlObj.origin + cleanPath);
+            }
+          });
+        }
+        if (manifest.pages) {
+          manifest.pages.forEach(p => {
+            const cleanPath = p.startsWith('/') ? p : '/' + p;
+            routes.push(baseUrlObj.origin + cleanPath);
+          });
+        }
+        if (manifest.start_url) {
+          const cleanPath = manifest.start_url.startsWith('/') ? manifest.start_url : '/' + manifest.start_url;
+          routes.push(baseUrlObj.origin + cleanPath);
+        }
         
         return routes;
       } catch (e) {
